@@ -1,0 +1,4 @@
+# caped registry — name<TAB>path-prefix<TAB>state<TAB>spec-file
+# state: enforced | legacy (legacy не проверяется хуком, считается в отчёте покрытия)
+root	README.md	enforced	README.md
+scripts	scripts/	enforced	README.md

@@ -1,48 +1,65 @@
 #!/usr/bin/env bash
-# commit-msg hook: every commit that touches behavior-bearing Rust code must
-# DECLARE its change class via a git trailer:
+# caped v0 commit-msg hook: registry-driven.
 #
-#   Behavior: contract   — a requirement changed; add  Spec: <path> (README/openspec updated)
-#   Behavior: internal   — refactor/bugfix, no contract change
+# Every commit touching files of an `enforced` capability must DECLARE its
+# change class via a git trailer:
+#
+#   Behavior: contract   — a requirement changed; add  Spec: <path> (or touch the cap's spec file)
+#   Behavior: internal   — refactor/bugfix/typo, no contract change
 #   Behavior: wip        — intermediate commit inside a change
 #
 # A subject starting with "wip" counts as `Behavior: wip`.
-# Commits that touch no behavior-bearing code need no trailer.
+# Commits touching no enforced capability need no trailer.
 #
-# Install:  git config core.hooksPath scripts/hooks
-# Retro report: python3 scripts/change_classification_report.py [since-date]
+# Registry: caped.registry at the repo root, one line per capability:
+#   name <TAB> path-prefix <TAB> state(legacy|declared|enforced) <TAB> spec-file
+#
+# Installed by scripts/caped-init.sh via a shim in .git/hooks/commit-msg.
 
 set -euo pipefail
 
 MSG_FILE="$1"
-SUBJECT="$(head -1 "$MSG_FILE")"
+ROOT="$(git rev-parse --show-toplevel)"
+REGISTRY="$ROOT/caped.registry"
+
+[ -f "$REGISTRY" ] || exit 0
 
 # Merge commits are exempt.
 if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
     exit 0
 fi
 
+SUBJECT="$(head -1 "$MSG_FILE")"
 BEHAVIOR="$(git interpret-trailers --parse "$MSG_FILE" | sed -n 's/^Behavior: //p' | head -1 || true)"
 if printf '%s' "$SUBJECT" | grep -qiE '^wip\b'; then
     BEHAVIOR="${BEHAVIOR:-wip}"
 fi
 
-# What does this commit touch? (staged tree — commit-msg runs pre-commit)
 CHANGED="$(git diff --cached --name-only)"
 
-CODE_TOUCHED="$(printf '%s\n' "$CHANGED" | grep -cE '^src/(features/[^/]+|app|entities|platform|ingress)/.*\.rs$' || true)"
-if [ "$CODE_TOUCHED" -eq 0 ]; then
-    exit 0
-fi
+# Does the commit touch any enforced capability? (prefix match)
+CAP_SPEC=""
+CAP_NAME=""
+while IFS=$'\t' read -r name prefix state spec; do
+    case "$name" in '' | \#*) continue ;; esac
+    [ "$state" = "enforced" ] || continue
+    if printf '%s\n' "$CHANGED" | grep -q "^$prefix"; then
+        CAP_NAME="$name"
+        CAP_SPEC="$spec"
+        break
+    fi
+done < "$REGISTRY"
+
+[ -n "$CAP_NAME" ] || exit 0
 
 if [ -z "$BEHAVIOR" ]; then
-    cat >&2 <<'EOF'
-commit-msg: the commit touches behavior-bearing code but declares no change class.
+    cat >&2 <<EOF
+commit-msg: the commit touches enforced capability '$CAP_NAME' but declares no change class.
 
 Add a trailer to the commit message:
 
     Behavior: contract
-    Spec: src/features/<module>/README.md
+    Spec: $CAP_SPEC
 
 or "Behavior: internal" (refactor/bugfix, no contract change),
 or "Behavior: wip" (intermediate commit inside a change).
@@ -53,10 +70,9 @@ fi
 case "$BEHAVIOR" in
     wip | internal) exit 0 ;;
     contract)
-        SPEC="$(git interpret-trailers --parse "$MSG_FILE" | sed -n 's/^Spec: //p' | head -1 || true)"
-        SPEC_TOUCHED="$(printf '%s\n' "$CHANGED" | grep -cE '^(openspec/|docs/|src/features/[^/]+/README\.md|AGENTS\.md)' || true)"
-        if [ -z "$SPEC" ] && [ "$SPEC_TOUCHED" -eq 0 ]; then
-            echo "commit-msg: Behavior: contract needs a Spec: trailer or a spec/README change in the commit." >&2
+        SPEC_TRAILER="$(git interpret-trailers --parse "$MSG_FILE" | sed -n 's/^Spec: //p' | head -1 || true)"
+        if [ -z "$SPEC_TRAILER" ] && ! printf '%s\n' "$CHANGED" | grep -qx "$CAP_SPEC"; then
+            echo "commit-msg: Behavior: contract needs a Spec: trailer or a change to $CAP_SPEC in the commit." >&2
             exit 1
         fi
         exit 0
