@@ -122,7 +122,9 @@ COMMANDS
                           markers in enforced spec files, refs are the same
                           markers in tests/code; fails on uncovered, dangling
                           or duplicated slugs ('[#<slug> no-test]' exempts)
-  caped.sh render  — derived views into .caped/ (not implemented yet)
+  caped.sh render [view]— derived views (plan, history, coverage) printed to
+                          stdout — read-only by default. --write materialises
+                          them into .caped/ (gitignored), --clean removes it
 
 A hook error is an instruction: read it and fix the commit accordingly.
 EOF
@@ -138,9 +140,13 @@ case "$cmd" in
     [ -x "$hook" ] || { echo "caped: no such hook: $hook" >&2; exit 2; }
     exec "$hook" "$@"
     ;;
-  check | render)
-    echo "caped: '$cmd' is not implemented yet (see README, the tool's own-bootstrap section)" >&2
+  check)
+    echo "caped: 'check' is not implemented yet (see README, the tool's own-bootstrap section)" >&2
     exit 1
+    ;;
+  render)
+    shift
+    exec python3 "$DIR/caped-render.py" "$@"
     ;;
   trace) exec "$DIR/caped-trace.sh" ;;
   *)

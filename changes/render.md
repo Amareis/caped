@@ -1,6 +1,6 @@
 ---
 name: render
-summary: caped render — derived views в .caped/: индекс идей, архив чейнджей из гита, coverage; plan.md — in-place исключение
+summary: caped render — derived views (plan / history / coverage) в stdout по умолчанию; запись в .caped/ только за --write
 phase: v0
 priority: medium
 depends_on: []
@@ -20,20 +20,33 @@ spawned_from: null
 
 ## Требования
 
-1. `caped.sh render` рендерит в `.caped/`: `ideas-index.md` (таблица из фронтматера: name, summary,
-   phase, priority, spawned_from), `archive.md` (заархивированные чейнджи из `git log --grep=Archives:`,
-   с датами и ссылками на коммиты), `coverage.txt` (уже считает init — вынести сюда, init зовёт render).
-2. `caped.sh render --clean` удаляет `.caped/` целиком.
-3. Защита от случайного коммита: .gitignore (есть) + pre-commit проверка, что ничего из `.caped/` не staged.
-4. `plan.md` у корня — сознательное исключение: единственный view in-place и закоммиченный, потому что человек
-   читает его чаще агента; рендерится тем же кодом из приоритетов фронтматера.
-5. Статус-вью «где мы»: идеи по приоритету, чейнджи в работе с возрастом последнего коммита, подвисшие
-   (в работе > N дней без коммитов). Самый востребованный view по полевому использованию — сейчас это
-   отвечается ручным git log/ls.
+1. `caped.sh render` — CLI чтения: печатает views в stdout, ничего не пишет [#render-stdout]. Views: `plan`
+   (идеи + чейнджи в работе: name, статус, phase, priority, depends_on, spawned_from, summary; у чейнджей —
+   дата и возраст последнего коммита, подвисшие помечаются), `history` (архив чейнджей из трейлеров
+   `Idea:`/`Archives:` в git log — рождение/архивация, даты, хеши, summary из версии файла перед удалением)
+   [#render-history], `coverage` (реестр vs git ls-files: enforced/legacy/free; перенесено из init).
+2. `caped.sh render plan|history|coverage` — одна view. `--write` материализует в `.caped/` (`plan.md`,
+   `history.md`, `coverage.txt`) [#render-write]; `--clean` удаляет `.caped/` целиком [#render-clean].
+3. Защита от случайного коммита: `.caped/` в .gitignore (ставит init) — достаточно, `git add` без `-f` не
+   пропустит; отдельный pre-commit не нужен.
+4. init не считает coverage сам — зовёт `render --write` (один генератор views).
+5. Реализация — `scripts/caped-render.py`, python3 stdlib (тот же ответ, что у caped-check: структурный
+   парсинг фронтматера и git log на bash хрупок, а render не на коммит-пути).
 
 ## Решения
 
-—
+- Stdout-first: дефолт без записи — render годится как CLI для просмотра планов/истории в потоке работы, без
+  материализации (директива человека: «рендер сначала, так чтобы можно было без материализации, просто как
+  CLI; запись в файлы — отдельный этап по флагу»).
+- `plan.md` у корня (in-place закоммиченный view) — вырезано из скоупа: stdout-plan закрывает ту же задачу,
+  а отдельный закоммиченный файл противоречит «read-only by design». Если понадобится — отдельная идея.
+- Подвисший чейндж = последний коммит по `changes/<name>.md` старше 7 дней (порог-константа, калибруется
+  свипом потом).
+- История строится из трейлеров git log (`Idea:` = рождение, `Archives:` = архивация), summary архивного
+  чейнджа — из `git show <архивный-коммит>^:changes/<name>.md`. Ренеймы сущностей склеиваются rename
+  detection-ом (`R` в `git log --name-status -M`): строка показывает `(was: старое-имя)`.
+- Найдено реализацией: `str.splitlines()` в питоне режет по `\x1e`/`\x1f` (control bytes — line boundaries) —
+  git log с сепараторами RS/FS обрабатывается только явным `split(RS)`, не splitlines.
 
 ## Променанс
 
