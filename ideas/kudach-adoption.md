@@ -3,7 +3,7 @@ name: kudach-adoption
 summary: Первый adopting-проект — kudach: реестр всё-legacy, advisory, первая enforced-капа feed с фасадным пилотом
 phase: v0
 priority: medium
-depends_on: [caped-check, test-hooks]
+depends_on: [caped-check, test-hooks, secretary]
 spawned_from: null
 ---
 
@@ -38,7 +38,8 @@ spawned_from: null
 Человек: «путь переезда надо предусмотреть, чтобы капабилити вводились по очереди, а непокрытые тул игнорил»;
 пилот на feed и исключение web_version — из ретро-замера (см. корневой README, променанс). Агент: depends_on
 check+test-hooks — тянуть непроверенный тул в чужую кодовую базу без verify-инфраструктуры нельзя, репутационная
-цена первого неправильного отказа хука высока.
+цена первого неправильного отказа хука высока. Позже добавлен secretary: агенты в kudach будут работать по
+дампу, а не по README тула — с непроверенно-полным дампом они получат неполные правила.
 
 ## Открытые вопросы
 
