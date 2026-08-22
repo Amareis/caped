@@ -1,0 +1,84 @@
+{
+  "trajectory": [
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && ls -la && cat scripts/caped.sh | head -5"
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && ls ideas/ changes/ 2>/dev/null; echo \"---\"; git status --short"
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && cat ideas/x.md"
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && grep -rn \"x\" --include=\"*.md\" . --exclude-dir=.git --exclude-dir=.caped | grep -v \"ideas/x.md\" | head -50"
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && grep -rn \"spawned_from\\|depends_on\" --include=\"*.md\" . --exclude-dir=.git --exclude-dir=.caped"
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && grep -rnE \"(^|[^a-zA-Z])x([^a-zA-Z]|$)\" --include=\"*.md\" . --exclude-dir=.git --exclude-dir=.caped | grep -v \"ideas/x.md\""
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && sed -n '155,170p' README.md"
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && grep -rn \"ideas/\" --include=\"*.md\" . --exclude-dir=.git --exclude-dir=.caped; echo \"---\"; grep -rn \"pre-push\" . --exclude-dir=.git --exclude-dir=.caped"
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && cat caped.registry && echo \"---\" && git log --oneline -10"
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && ls scripts/ && echo \"---\" && cat scripts/commit-msg 2>/dev/null || ls scripts/hooks 2>/dev/null"
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && cat scripts/hooks/commit-msg"
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && sed -n '100,200p' scripts/hooks/commit-msg"
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && grep -rn \"x\" tests/ scripts/ 2>/dev/null | grep -viE \"index|exit|prefix|regex|complex|max|next|fix|box|proxy|export|context|execute|example|extract|approx|syntax|tax|aux|mix|max\" | head -30; echo \"=== done ===\""
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && git show aea9103 --stat && echo \"---\" && git show aea9103 | head -40"
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && git status --short && git mv ideas/x.md ideas/pre-push-hooks.md && sed -i '' 's/^name: x$/name: pre-push-hooks/' ideas/pre-push-hooks.md && git status --short && echo \"---\" && git diff --cached -M --stat"
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && git add ideas/pre-push-hooks.md && git diff --cached -M && echo \"---\" && head -5 ideas/pre-push-hooks.md"
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && git commit -m \"rename idea x to pre-push-hooks\" && git status --short && echo \"---\" && git log --oneline -3 && echo \"---\" && git show --stat HEAD | head -20"
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && bash scripts/caped.sh check; echo \"check exit: $?\""
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && (just test 2>/dev/null || bash scripts/run-tests.sh); echo \"tests exit: $?\""
+    },
+    {
+      "tool": "bash",
+      "command": "cd \"$(pwd)\" && git stash -u >/dev/null 2>&1; git checkout aea9103 --quiet 2>/dev/null; bash scripts/caped.sh trace 2>&1 | tail -5; echo \"---\"; git checkout main --quiet; git stash pop >/dev/null 2>&1; git status --short; git log --oneline -1"
+    }
+  ]
+}
