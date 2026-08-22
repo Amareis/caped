@@ -11,6 +11,16 @@
 # A subject starting with "wip" counts as `Behavior: wip`.
 # Commits touching no enforced capability need no trailer.
 #
+# Tracker events (repo-global, ideas/ + changes/ live outside the caps registry):
+#
+#   A  ideas/<name>.md                  needs  Idea: <name>
+#   R  ideas/<name>.md -> changes/…     needs  Change: <name>   (a change is born ONLY via rename)
+#   M  changes/<name>.md                needs  Change: <name>
+#   D  changes/<name>.md                needs  Archives: <name>
+#
+# `Change: <name>` requires changes/<name>.md to exist (except `Change: init` and
+# the archival commit itself); `Archives: <name>` requires the deletion in the same commit.
+#
 # Registry: caped.registry at the repo root, one line per capability:
 #   name <TAB> path-prefix <TAB> state(legacy|declared|enforced) <TAB> spec-file
 #
@@ -30,9 +40,75 @@ if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
 fi
 
 SUBJECT="$(head -1 "$MSG_FILE")"
-BEHAVIOR="$(git interpret-trailers --parse "$MSG_FILE" | sed -n 's/^Behavior: //p' | head -1 || true)"
+TRAILERS="$(git interpret-trailers --parse "$MSG_FILE")"
+BEHAVIOR="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Behavior: //p' | head -1 || true)"
 if printf '%s' "$SUBJECT" | grep -qiE '^wip\b'; then
     BEHAVIOR="${BEHAVIOR:-wip}"
+fi
+
+# --- Tracker events: ideas/ + changes/ are repo-global, checked for every commit ---
+IDEA="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Idea: //p' | head -1 || true)"
+CHANGE="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Change: //p' | head -1 || true)"
+ARCHIVES="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Archives: //p' | head -1 || true)"
+
+EVENT_ERRORS=""
+err() { EVENT_ERRORS="${EVENT_ERRORS}$1
+"; }
+
+while IFS=$'\t' read -r status p1 p2; do
+    case "$status" in
+        A)
+            case "$p1" in
+                ideas/*.md)
+                    want="$(basename "$p1" .md)"
+                    [ "$IDEA" = "$want" ] || err "добавлена идея $p1 — нужен трейлер: Idea: $want"
+                    ;;
+                changes/*.md)
+                    [ "$CHANGE" = "init" ] || err "чейндж $p1 добавлен напрямую — взятие в работу это чистый 'git mv ideas/<name>.md changes/<name>.md' с трейлером Change: <name>"
+                    ;;
+            esac
+            ;;
+        R*)
+            case "$p1/$p2" in
+                ideas/*.md/changes/*.md)
+                    src="$(basename "$p1" .md)"; want="$(basename "$p2" .md)"
+                    [ "$src" = "$want" ] || err "rename $p1 -> $p2 меняет имя — mv в работу сохраняет имя файла"
+                    [ "$CHANGE" = "$want" ] || err "взятие в работу $p2 — нужен трейлер: Change: $want"
+                    ;;
+            esac
+            ;;
+        M)
+            case "$p1" in
+                changes/*.md)
+                    want="$(basename "$p1" .md)"
+                    [ "$CHANGE" = "$want" ] || err "правка чейнджа $p1 — нужен трейлер: Change: $want"
+                    ;;
+            esac
+            ;;
+        D)
+            case "$p1" in
+                changes/*.md)
+                    want="$(basename "$p1" .md)"
+                    [ "$ARCHIVES" = "$want" ] || err "удаление чейнджа $p1 — нужен трейлер: Archives: $want"
+                    ;;
+            esac
+            ;;
+    esac
+done < <(git diff --cached --name-status -M)
+
+# Change: должен ссылаться на существующий чейндж (кроме семенного init и архивного коммита)
+if [ -n "$CHANGE" ] && [ "$CHANGE" != "init" ] && [ -z "$ARCHIVES" ]; then
+    git ls-files --error-unmatch "changes/$CHANGE.md" >/dev/null 2>&1 ||
+        err "трейлер Change: $CHANGE, но changes/$CHANGE.md не существует (сначала возьми идею в работу mv'ом)"
+fi
+# Archives: требует удаления файла в том же коммите
+if [ -n "$ARCHIVES" ] && ! git diff --cached --name-status | grep -q "^D	changes/$ARCHIVES.md$"; then
+    err "трейлер Archives: $ARCHIVES, но changes/$ARCHIVES.md не удалён в этом коммите"
+fi
+
+if [ -n "$EVENT_ERRORS" ]; then
+    printf 'commit-msg: нарушены события жизненного цикла:\n%s' "$EVENT_ERRORS" >&2
+    exit 1
 fi
 
 CHANGED="$(git diff --cached --name-only)"
