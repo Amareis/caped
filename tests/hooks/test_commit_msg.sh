@@ -103,6 +103,15 @@ expect_reject_matching 'overlapping prefixes: the longer one decides [#longest-p
 msg 'change feature\n\nBehavior: internal\n'
 expect_accept 'Behavior accepted under the longer prefix [#longest-prefix]'
 
+# A registry prefix may name a single file, not only a directory.
+printf 'dump\tscripts/caped.sh\tenforced\tREADME.md\n' >> caped.registry
+printf '# touched\n' >> scripts/caped.sh
+git add scripts/caped.sh
+msg 'touch dump\n'
+expect_reject_matching 'a file-prefix cap is enforced on its exact file [#longest-prefix]' "capability 'dump'"
+msg 'touch dump\n\nBehavior: internal\n'
+expect_accept 'Behavior accepted under a file-prefix cap [#longest-prefix]'
+
 # --- Events: ideas/ ----------------------------------------------------------
 
 echo '- idea x' > ideas/x.md; git add ideas/x.md

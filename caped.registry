@@ -3,3 +3,4 @@
 root	README.md	enforced	README.md
 scripts	scripts/	enforced	README.md
 tests	tests/	enforced	README.md
+secretary	scripts/caped.sh	enforced	README.md

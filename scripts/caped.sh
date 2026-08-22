@@ -13,12 +13,13 @@ caped — tracker and specs in git. The working rules of this repository.
 LIFECYCLE (each event is a separate atomic commit)
 
   1. Idea:      new file ideas/<name>.md, commit with trailer  Idea: <name>
-  2. In work:   clean git mv ideas/<name>.md changes/<name>.md (no content
+                [#idea-birth]
+  2. In work:   clean git mv ideas/<name>.md changes/<name>.md [#take-into-work] (no content
                 edits — rename detection must stitch the file's history),
                 trailer Change: <name>
-  3. Work:      every commit of the change carries Change: <name>; editing
+  3. Work:      every commit of the change carries Change: <name> [#work-trailer]; editing
                 changes/<name>.md without it is rejected by the hook
-  4. Archive:   the final commit applies the deltas to capability READMEs
+  4. Archive:   the final commit applies the deltas to capability READMEs [#archival]
                 (those deltas ARE its content) and deletes changes/<name>.md,
                 trailers Change: <name> + Archives: <name>. Finishing may be a
                 single commit (deltas + deletion together) — splitting the
@@ -26,11 +27,11 @@ LIFECYCLE (each event is a separate atomic commit)
 
 COMMIT TRAILERS (git trailers, enforced by the commit-msg hook)
 
-  Behavior: contract|internal|wip  — change class, required for ANY commit
+  Behavior: contract|internal|wip  — change class [#behavior-trailer], required for ANY commit
                                      touching enforced capabilities, the
                                      archive commit included (subject
                                      "wip*" counts as wip)
-  Spec: <path>                     — on contract: the path of the spec whose
+  Spec: <path>                     — on contract [#spec-trailer]: the path of the spec whose
                                      contract changes. Either the trailer or
                                      the spec file changed in the same commit
                                      satisfies the hook — no need for both.
@@ -47,20 +48,20 @@ CAPABILITY REGISTRY (caped.registry, TAB-separated: name, prefix, state, spec fi
   legacy    — coverage declared, hook does not check (migration path)
   declared  — spec file exists, enforcement not yet enabled
   enforced  — hook requires Behavior/Spec
-  Paths outside the registry are ignored by design. Overlapping prefixes:
-  longest prefix wins.
+  Paths outside the registry are ignored by design [#free-paths].
+  Overlapping prefixes: longest prefix wins [#longest-prefix].
 
 ADHOC (fileless) DECISIONS
 
   A small, already-discussed, 1–2-commit decision may live entirely in its
   commits — no ideas/changes file: Behavior: contract|internal (+ Spec: on
-  contract) with the rationale in the commit BODY (enforced: a fileless
+  contract) with the rationale in the commit BODY [#adhoc-body] (enforced: a fileless
   contract requires a non-empty body — subject and trailers don't count).
   A file is required when the work is > 2 commits, opens a new decision
   territory, is disputed or undiscussed, spans several caps, or carries open
   questions. Drift review watches the share of fileless contract commits.
 
-SPAWNING IDEAS (the agent decides WHERE a decision lives — don't wait to be told)
+SPAWNING IDEAS [#idea-autonomy] (the agent decides WHERE a decision lives — don't wait to be told)
 
   The human decides WHAT; placing the decision correctly is your job:
   - Same contract territory as the current change → extend the change itself:
@@ -95,7 +96,7 @@ DISCIPLINE
     Change: <parent> + Idea: <child>). Deferred scope is a finding too: a
     piece cut mid-change ("later") becomes an idea with spawned_from in the
     SAME commit that cuts it — silently deferred means lost.
-  - Renaming an idea is one commit: git mv + the name: frontmatter fix + all
+  - Renaming an idea is one commit [#idea-rename]: git mv + the name: frontmatter fix + all
     referrers (depends_on, spawned_from, prose) — referrers ARE the rename's
     content, not unrelated edits; the one-line file diff keeps rename
     detection intact. No new trailer: the event is derived from the diff.
@@ -106,28 +107,36 @@ DISCIPLINE
     process violation); docs/process-only changes are exempt.
   - Specs (capability READMEs, ideas/changes) are written in the project's
     language; the tool's interface texts (this dump, AGENTS.md stub, hook
-    messages) are in English.
-  - Requirements in enforced spec files carry stable [#<slug>] markers; a test
-    covering a requirement repeats the marker in its name or a comment.
-    Run caped.sh trace to check the balance before archiving a change.
+    messages) are in English [#interface-language].
+  - Requirements in enforced spec files carry stable [#<slug>] markers
+    [#trace-defs]; a test covering a requirement repeats the marker in its
+    name or a comment [#trace-refs]. Marker attributes: 'no-test' exempts
+    from coverage [#trace-no-test], 'dump' marks the rule agent-facing —
+    such rules MUST appear in this dump [#trace-dump-attr], trace fails on
+    'undumped' otherwise [#trace-undumped]. Run caped.sh trace to check the
+    balance before archiving a change [#trace-checker].
 
 COMMANDS
 
-  caped.sh              — this reference
+  caped.sh              — this reference [#rules-in-cli]
   caped.sh init         — wire up a repo (hook shims, registry, ideas/ +
-                          changes/). Idempotent: safe to re-run, it only
-                          repairs missing pieces and refreshes the report.
-  caped.sh check        — structural validation of ideas//changes/ (frontmatter,
+                          changes/). Idempotent [#init-idempotent]: safe to re-run,
+                          it only repairs missing pieces and refreshes the report.
+  caped.sh check        — structural validation of ideas//changes/ [#check-structure]
+                          (frontmatter,
                           required sections, spawned_from resolves to a live or
-                          archived entity). Errors fail; marker-fullness gaps in
-                          enforced specs are warnings only
+                          archived entity) [#check-spawned-from]. Errors fail;
+                          marker-fullness gaps in enforced specs are warnings only
+                          [#check-marker-fullness]
   caped.sh trace        — requirement<->test marker balance: defs are [#<slug>]
                           markers in enforced spec files, refs are the same
                           markers in tests/code; fails on uncovered, dangling
                           or duplicated slugs ('[#<slug> no-test]' exempts)
   caped.sh render [view]— derived views (plan, history, coverage) printed to
-                          stdout — read-only by default. --write materialises
-                          them into .caped/ (gitignored), --clean removes it
+                          stdout — read-only by default [#render-stdout]. --write
+                          materialises them into .caped/ (gitignored)
+                          [#render-write], --clean removes it [#render-clean];
+                          history is rebuilt from git trailers [#render-history]
 
 A hook error is an instruction: read it and fix the commit accordingly.
 EOF
