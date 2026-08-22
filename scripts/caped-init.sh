@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# caped init — разово подготавливает репозиторий к жизни по caped-модели.
-# Идемпотентен: повторный запуск только чинит отсутствующее и обновляет отчёт.
+# caped init — one-time wiring of a repository for the caped model.
+# Idempotent: re-running only repairs what is missing and refreshes the report.
 #
-# Что делает:
-#   1. Ставит шим .git/hooks/commit-msg, делегирующий версионируемому
-#      scripts/hooks/commit-msg (логика — в репо, шим — тонкий и стабильный).
-#   2. Сеет caped.registry, если его нет: root-кап + auto-discovery
-#      src/features/*/ как legacy-капы (для adopting-репозиториев).
-#   3. Добавляет .caped/ в .gitignore (derived views не коммитим).
-#   4. Создаёт ideas/ и changes/ с .gitkeep.
-#   5. Печатает (и пишет в .caped/coverage.txt) отчёт покрытия:
-#      сколько tracked-файлов под enforced-капами, под legacy и не покрыто.
+# What it does:
+#   1. Installs the .git/hooks/commit-msg shim delegating to the versioned
+#      scripts/caped.sh dispatcher (logic lives in the repo, shim is thin).
+#   2. Seeds caped.registry if missing: root cap + auto-discovery of
+#      src/features/*/ as legacy caps (for adopting repositories).
+#   3. Adds .caped/ to .gitignore (derived views are never committed).
+#   4. Creates ideas/ and changes/ with .gitkeep.
+#   5. Prints (and writes to .caped/coverage.txt) the coverage report:
+#      how many tracked files fall under enforced caps, legacy, or none.
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
@@ -18,29 +18,27 @@ cd "$ROOT"
 
 die() { echo "caped-init: $*" >&2; exit 1; }
 
-[ -d .git ] || die "не git-репозиторий: $ROOT"
+[ -d .git ] || die "not a git repository: $ROOT"
 
 # --- 1. commit-msg shim ---------------------------------------------------
 SHIM=.git/hooks/commit-msg
-if [ ! -f scripts/hooks/commit-msg ]; then
-  die "нет scripts/hooks/commit-msg — положи версионируемый хук туда первым"
-fi
-chmod +x scripts/hooks/commit-msg
+[ -f scripts/caped.sh ] || die "scripts/caped.sh missing — the versioned dispatcher must exist first"
+chmod +x scripts/caped.sh scripts/hooks/commit-msg 2>/dev/null || true
 cat > "$SHIM" <<'EOF'
 #!/bin/sh
-# caped commit-msg shim — логика версионируется в scripts/hooks/commit-msg
-exec "$(git rev-parse --show-toplevel)/scripts/hooks/commit-msg" "$@"
+# caped commit-msg shim — logic is versioned in scripts/ (caped.sh dispatcher)
+exec "$(git rev-parse --show-toplevel)/scripts/caped.sh" hook commit-msg "$@"
 EOF
 chmod +x "$SHIM"
-echo "ok: $SHIM -> scripts/hooks/commit-msg"
+echo "ok: $SHIM -> scripts/caped.sh hook commit-msg"
 
 # --- 2. caped.registry ----------------------------------------------------
 if [ ! -f caped.registry ]; then
   {
     printf '# caped registry — name<TAB>path-prefix<TAB>state<TAB>spec-file\n'
-    printf '# state: enforced | legacy\n'
+    printf '# state: enforced | declared | legacy\n'
     printf 'root\tREADME.md\tenforced\tREADME.md\n'
-    # auto-discovery: типовой feature-sliced layout — существующие фичи как legacy
+    # auto-discovery: typical feature-sliced layout — existing features as legacy
     if [ -d src/features ]; then
       for d in src/features/*/; do
         [ -d "$d" ] || continue
@@ -49,18 +47,18 @@ if [ ! -f caped.registry ]; then
       done
     fi
   } > caped.registry
-  echo "ok: caped.registry создан (src/features/* посеяны как legacy — переводи в enforced по одному)"
+  echo "ok: caped.registry seeded (src/features/* entered as legacy — flip to enforced one by one)"
 else
-  echo "ok: caped.registry уже есть, не трогаю"
+  echo "ok: caped.registry already exists, untouched"
 fi
 
 # --- 3. .gitignore --------------------------------------------------------
 touch .gitignore
 if grep -qx '.caped/' .gitignore; then
-  echo "ok: .caped/ уже в .gitignore"
+  echo "ok: .caped/ already in .gitignore"
 else
-  printf '\n# caped derived views — генерятся на лету, не коммитим\n.caped/\n' >> .gitignore
-  echo "ok: .caped/ добавлен в .gitignore"
+  printf '\n# caped derived views — generated on the fly, never committed\n.caped/\n' >> .gitignore
+  echo "ok: .caped/ added to .gitignore"
 fi
 
 # --- 4. ideas/ + changes/ -------------------------------------------------
@@ -69,10 +67,10 @@ for d in ideas changes; do
   [ -e "$d/.gitkeep" ] || { : > "$d/.gitkeep"; echo "ok: $d/.gitkeep"; }
 done
 
-# --- 5. отчёт покрытия -----------------------------------------------------
+# --- 5. coverage report -----------------------------------------------------
 REPORT=.caped/coverage.txt
 enforced_prefixes=$(awk -F'\t' '$1 !~ /^#/ && $3 == "enforced" {print $2}' caped.registry)
-legacy_prefixes=$(awk -F'\t' '$1 !~ /^#/ && $3 == "legacy" {print $2}' caped.registry)
+legacy_prefixes=$(awk -F'\t' '$1 !~ /^#/ && $3 != "enforced" {print $2}' caped.registry)
 
 n_enforced=0; n_legacy=0; n_free=0
 while IFS= read -r f; do
@@ -94,9 +92,9 @@ done < <(git ls-files)
 
 {
   echo "# caped coverage — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  echo "enforced: $n_enforced файлов"
-  echo "legacy:   $n_legacy файлов"
-  echo "свободно: $n_free файлов (вне реестра — хук игнорирует)"
+  echo "enforced: $n_enforced files"
+  echo "legacy:   $n_legacy files"
+  echo "free:     $n_free files (outside the registry — ignored by the hook)"
 } | tee "$REPORT"
 
-echo "caped init: готово"
+echo "caped init: done"

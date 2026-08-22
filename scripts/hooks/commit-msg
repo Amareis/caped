@@ -61,10 +61,10 @@ while IFS=$'\t' read -r status p1 p2; do
             case "$p1" in
                 ideas/*.md)
                     want="$(basename "$p1" .md)"
-                    [ "$IDEA" = "$want" ] || err "добавлена идея $p1 — нужен трейлер: Idea: $want"
+                    [ "$IDEA" = "$want" ] || err "new idea $p1 — trailer required: Idea: $want"
                     ;;
                 changes/*.md)
-                    [ "$CHANGE" = "init" ] || err "чейндж $p1 добавлен напрямую — взятие в работу это чистый 'git mv ideas/<name>.md changes/<name>.md' с трейлером Change: <name>"
+                    [ "$CHANGE" = "init" ] || err "change $p1 added directly — taking an idea into work is a clean 'git mv ideas/<name>.md changes/<name>.md' with trailer Change: <name>"
                     ;;
             esac
             ;;
@@ -72,8 +72,8 @@ while IFS=$'\t' read -r status p1 p2; do
             case "$p1/$p2" in
                 ideas/*.md/changes/*.md)
                     src="$(basename "$p1" .md)"; want="$(basename "$p2" .md)"
-                    [ "$src" = "$want" ] || err "rename $p1 -> $p2 меняет имя — mv в работу сохраняет имя файла"
-                    [ "$CHANGE" = "$want" ] || err "взятие в работу $p2 — нужен трейлер: Change: $want"
+                    [ "$src" = "$want" ] || err "rename $p1 -> $p2 changes the name — mv into work keeps the file name"
+                    [ "$CHANGE" = "$want" ] || err "taking $p2 into work — trailer required: Change: $want"
                     ;;
             esac
             ;;
@@ -81,7 +81,7 @@ while IFS=$'\t' read -r status p1 p2; do
             case "$p1" in
                 changes/*.md)
                     want="$(basename "$p1" .md)"
-                    [ "$CHANGE" = "$want" ] || err "правка чейнджа $p1 — нужен трейлер: Change: $want"
+                    [ "$CHANGE" = "$want" ] || err "edit of change $p1 — trailer required: Change: $want"
                     ;;
             esac
             ;;
@@ -89,25 +89,25 @@ while IFS=$'\t' read -r status p1 p2; do
             case "$p1" in
                 changes/*.md)
                     want="$(basename "$p1" .md)"
-                    [ "$ARCHIVES" = "$want" ] || err "удаление чейнджа $p1 — нужен трейлер: Archives: $want"
+                    [ "$ARCHIVES" = "$want" ] || err "deletion of change $p1 — trailer required: Archives: $want"
                     ;;
             esac
             ;;
     esac
 done < <(git diff --cached --name-status -M)
 
-# Change: должен ссылаться на существующий чейндж (кроме семенного init и архивного коммита)
+# Change: must reference an existing change (except the init seed and the archival commit)
 if [ -n "$CHANGE" ] && [ "$CHANGE" != "init" ] && [ -z "$ARCHIVES" ]; then
     git ls-files --error-unmatch "changes/$CHANGE.md" >/dev/null 2>&1 ||
-        err "трейлер Change: $CHANGE, но changes/$CHANGE.md не существует (сначала возьми идею в работу mv'ом)"
+        err "trailer Change: $CHANGE, but changes/$CHANGE.md does not exist (take the idea into work via mv first)"
 fi
-# Archives: требует удаления файла в том же коммите
+# Archives: requires the file deletion in the same commit
 if [ -n "$ARCHIVES" ] && ! git diff --cached --name-status | grep -q "^D	changes/$ARCHIVES.md$"; then
-    err "трейлер Archives: $ARCHIVES, но changes/$ARCHIVES.md не удалён в этом коммите"
+    err "trailer Archives: $ARCHIVES, but changes/$ARCHIVES.md is not deleted in this commit"
 fi
 
 if [ -n "$EVENT_ERRORS" ]; then
-    printf 'commit-msg: нарушены события жизненного цикла:\n%s' "$EVENT_ERRORS" >&2
+    printf 'commit-msg: lifecycle event violations:\n%s' "$EVENT_ERRORS" >&2
     exit 1
 fi
 
