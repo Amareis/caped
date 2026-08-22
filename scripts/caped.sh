@@ -76,13 +76,18 @@ DISCIPLINE
   - Findings born inside a change: same contract/artifact → extend the SAME
     change (same Change: trailer, decisions appended to its file); a new
     decision territory → a new idea with spawned_from (commit with
-    Change: <parent> + Idea: <child>).
+    Change: <parent> + Idea: <child>). Deferred scope is a finding too: a
+    piece cut mid-change ("later") becomes an idea with spawned_from in the
+    SAME commit that cuts it — silently deferred means lost.
   - A change that alters behavior leaves its scenarios as tests at archive
     time (for this tool: a hook rule without a scenario in tests/hooks/ is a
     process violation); docs/process-only changes are exempt.
   - Specs (capability READMEs, ideas/changes) are written in the project's
     language; the tool's interface texts (this dump, AGENTS.md stub, hook
     messages) are in English.
+  - Requirements in enforced spec files carry stable [#<slug>] markers; a test
+    covering a requirement repeats the marker in its name or a comment.
+    Run caped.sh trace to check the balance before archiving a change.
 
 COMMANDS
 
@@ -91,6 +96,10 @@ COMMANDS
                           changes/). Idempotent: safe to re-run, it only
                           repairs missing pieces and refreshes the report.
   caped.sh check        — frontmatter/section validation (not implemented yet)
+  caped.sh trace        — requirement<->test marker balance: defs are [#<slug>]
+                          markers in enforced spec files, refs are the same
+                          markers in tests/code; fails on uncovered, dangling
+                          or duplicated slugs ('[#<slug> no-test]' exempts)
   caped.sh materialise  — derived views into .caped/ (not implemented yet)
 
 A hook error is an instruction: read it and fix the commit accordingly.
@@ -111,6 +120,7 @@ case "$cmd" in
     echo "caped: '$cmd' is not implemented yet (see README, the tool's own-bootstrap section)" >&2
     exit 1
     ;;
+  trace) exec "$DIR/caped-trace.sh" ;;
   *)
     echo "caped: unknown command '$cmd' — run scripts/caped.sh with no arguments for the rules" >&2
     exit 2
