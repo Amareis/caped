@@ -21,6 +21,10 @@
 # `Change: <name>` requires changes/<name>.md to exist (except `Change: init` and
 # the archival commit itself); `Archives: <name>` requires the deletion in the same commit.
 #
+# A fileless `Behavior: contract` (no Change:) is an adhoc decision and must carry
+# its rationale in the commit body. All violations (events + caps) are reported
+# in one aggregated message. Overlapping registry prefixes: longest prefix wins.
+#
 # Registry: caped.registry at the repo root, one line per capability:
 #   name <TAB> path-prefix <TAB> state(legacy|declared|enforced) <TAB> spec-file
 #
@@ -106,14 +110,9 @@ if [ -n "$ARCHIVES" ] && ! git diff --cached --name-status | grep -q "^D	changes
     err "trailer Archives: $ARCHIVES, but changes/$ARCHIVES.md is not deleted in this commit"
 fi
 
-if [ -n "$EVENT_ERRORS" ]; then
-    printf 'commit-msg: lifecycle event violations:\n%s' "$EVENT_ERRORS" >&2
-    exit 1
-fi
-
 CHANGED="$(git diff --cached --name-only)"
 
-# Does the commit touch any enforced capability? (prefix match)
+# Does the commit touch an enforced capability? Longest prefix wins.
 CAP_SPEC=""
 CAP_NAME=""
 while IFS=$'\t' read -r name prefix state spec; do
@@ -124,37 +123,35 @@ while IFS=$'\t' read -r name prefix state spec; do
         CAP_SPEC="$spec"
         break
     fi
-done < "$REGISTRY"
+done < <(awk -F'\t' 'NF { print length($2) "\t" $0 }' "$REGISTRY" | sort -rn | cut -f2-)
 
-[ -n "$CAP_NAME" ] || exit 0
-
-if [ -z "$BEHAVIOR" ]; then
-    cat >&2 <<EOF
-commit-msg: the commit touches enforced capability '$CAP_NAME' but declares no change class.
-
-Add a trailer to the commit message:
-
-    Behavior: contract
-    Spec: $CAP_SPEC
-
-or "Behavior: internal" (refactor/bugfix, no contract change),
-or "Behavior: wip" (intermediate commit inside a change).
-EOF
-    exit 1
+if [ -n "$CAP_NAME" ]; then
+    if [ -z "$BEHAVIOR" ]; then
+        err "touches enforced capability '$CAP_NAME' without a change class — add a trailer: Behavior: contract + Spec: $CAP_SPEC (or \"Behavior: internal\" for a no-contract-change fix, \"Behavior: wip\" for an intermediate commit)"
+    else
+        case "$BEHAVIOR" in
+            wip | internal) : ;;
+            contract)
+                SPEC_TRAILER="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Spec: //p' | head -1 || true)"
+                if [ -z "$SPEC_TRAILER" ] && ! printf '%s\n' "$CHANGED" | grep -qx "$CAP_SPEC"; then
+                    err "Behavior: contract needs a Spec: trailer or a change to $CAP_SPEC in the commit"
+                fi
+                # Fileless contract (no Change:) is an adhoc decision: the commit body
+                # must carry the rationale — subject and trailers don't count.
+                BODY="$(tail -n +2 "$MSG_FILE" | sed '/^#/d; /^[[:space:]]*$/d; /^[A-Za-z][A-Za-z-]*: /d' || true)"
+                if [ -z "$CHANGE" ] && [ -z "$BODY" ]; then
+                    err "fileless contract (no Change:) is an adhoc decision — the commit body must carry the mini-provenance (what, why, on what grounds)"
+                fi
+                ;;
+            *)
+                err "unknown Behavior value '$BEHAVIOR' (expected contract|internal|wip)"
+                ;;
+        esac
+    fi
 fi
 
-case "$BEHAVIOR" in
-    wip | internal) exit 0 ;;
-    contract)
-        SPEC_TRAILER="$(git interpret-trailers --parse "$MSG_FILE" | sed -n 's/^Spec: //p' | head -1 || true)"
-        if [ -z "$SPEC_TRAILER" ] && ! printf '%s\n' "$CHANGED" | grep -qx "$CAP_SPEC"; then
-            echo "commit-msg: Behavior: contract needs a Spec: trailer or a change to $CAP_SPEC in the commit." >&2
-            exit 1
-        fi
-        exit 0
-        ;;
-    *)
-        echo "commit-msg: unknown Behavior value '$BEHAVIOR' (expected contract|internal|wip)." >&2
-        exit 1
-        ;;
-esac
+if [ -n "$EVENT_ERRORS" ]; then
+    printf 'commit-msg: rule violations:\n%s' "$EVENT_ERRORS" >&2
+    exit 1
+fi
+exit 0

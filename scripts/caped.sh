@@ -20,7 +20,9 @@ LIFECYCLE (each event is a separate atomic commit)
                 changes/<name>.md without it is rejected by the hook
   4. Archive:   the final commit applies the deltas to capability READMEs
                 (those deltas ARE its content) and deletes changes/<name>.md,
-                trailers Change: <name> + Archives: <name>
+                trailers Change: <name> + Archives: <name>. Finishing may be a
+                single commit (deltas + deletion together) — splitting the
+                last work commit and the deletion is valid but not required.
 
 COMMIT TRAILERS (git trailers, enforced by the commit-msg hook)
 
@@ -45,7 +47,18 @@ CAPABILITY REGISTRY (caped.registry, TAB-separated: name, prefix, state, spec fi
   legacy    — coverage declared, hook does not check (migration path)
   declared  — spec file exists, enforcement not yet enabled
   enforced  — hook requires Behavior/Spec
-  Paths outside the registry are ignored by design.
+  Paths outside the registry are ignored by design. Overlapping prefixes:
+  longest prefix wins.
+
+ADHOC (fileless) DECISIONS
+
+  A small, already-discussed, 1–2-commit decision may live entirely in its
+  commits — no ideas/changes file: Behavior: contract|internal (+ Spec: on
+  contract) with the rationale in the commit BODY (enforced: a fileless
+  contract requires a non-empty body — subject and trailers don't count).
+  A file is required when the work is > 2 commits, opens a new decision
+  territory, is disputed or undiscussed, spans several caps, or carries open
+  questions. Drift review watches the share of fileless contract commits.
 
 DISCIPLINE
 
