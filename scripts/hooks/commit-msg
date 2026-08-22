@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# commit-msg hook: every commit that touches behavior-bearing Rust code must
+# DECLARE its change class via a git trailer:
+#
+#   Behavior: contract   — a requirement changed; add  Spec: <path> (README/openspec updated)
+#   Behavior: internal   — refactor/bugfix, no contract change
+#   Behavior: wip        — intermediate commit inside a change
+#
+# A subject starting with "wip" counts as `Behavior: wip`.
+# Commits that touch no behavior-bearing code need no trailer.
+#
+# Install:  git config core.hooksPath scripts/hooks
+# Retro report: python3 scripts/change_classification_report.py [since-date]
+
+set -euo pipefail
+
+MSG_FILE="$1"
+SUBJECT="$(head -1 "$MSG_FILE")"
+
+# Merge commits are exempt.
+if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
+    exit 0
+fi
+
+BEHAVIOR="$(git interpret-trailers --parse "$MSG_FILE" | sed -n 's/^Behavior: //p' | head -1 || true)"
+if printf '%s' "$SUBJECT" | grep -qiE '^wip\b'; then
+    BEHAVIOR="${BEHAVIOR:-wip}"
+fi
+
+# What does this commit touch? (staged tree — commit-msg runs pre-commit)
+CHANGED="$(git diff --cached --name-only)"
+
+CODE_TOUCHED="$(printf '%s\n' "$CHANGED" | grep -cE '^src/(features/[^/]+|app|entities|platform|ingress)/.*\.rs$' || true)"
+if [ "$CODE_TOUCHED" -eq 0 ]; then
+    exit 0
+fi
+
+if [ -z "$BEHAVIOR" ]; then
+    cat >&2 <<'EOF'
+commit-msg: the commit touches behavior-bearing code but declares no change class.
+
+Add a trailer to the commit message:
+
+    Behavior: contract
+    Spec: src/features/<module>/README.md
+
+or "Behavior: internal" (refactor/bugfix, no contract change),
+or "Behavior: wip" (intermediate commit inside a change).
+EOF
+    exit 1
+fi
+
+case "$BEHAVIOR" in
+    wip | internal) exit 0 ;;
+    contract)
+        SPEC="$(git interpret-trailers --parse "$MSG_FILE" | sed -n 's/^Spec: //p' | head -1 || true)"
+        SPEC_TOUCHED="$(printf '%s\n' "$CHANGED" | grep -cE '^(openspec/|docs/|src/features/[^/]+/README\.md|AGENTS\.md)' || true)"
+        if [ -z "$SPEC" ] && [ "$SPEC_TOUCHED" -eq 0 ]; then
+            echo "commit-msg: Behavior: contract needs a Spec: trailer or a spec/README change in the commit." >&2
+            exit 1
+        fi
+        exit 0
+        ;;
+    *)
+        echo "commit-msg: unknown Behavior value '$BEHAVIOR' (expected contract|internal|wip)." >&2
+        exit 1
+        ;;
+esac
