@@ -60,6 +60,22 @@ ADHOC (fileless) DECISIONS
   territory, is disputed or undiscussed, spans several caps, or carries open
   questions. Drift review watches the share of fileless contract commits.
 
+SPAWNING IDEAS (the agent decides WHERE a decision lives — don't wait to be told)
+
+  The human decides WHAT; placing the decision correctly is your job:
+  - Same contract territory as the current change → extend the change itself:
+    same Change: trailer, the decision appended to its Решения/Променанс.
+  - New decision territory, open questions, a disputed call, >2 commits or
+    several caps → a new idea file. Born inside a change → spawned_from plus
+    a commit with Change: <parent> + Idea: <child>.
+  - Scope cut from the current change "for later" → an idea with
+    spawned_from in the SAME commit that cuts it — silently deferred = lost.
+  - Small, already-discussed, 1–2-commit decision → no file at all (ADHOC).
+  - Naming: ideas are verbs (work to do), caps are nouns (a decision
+    territory); an idea becomes a cap when a standing territory appears.
+  - Every idea carries a "Рассмотрено и отклонено" list — rejected
+    alternatives with grounds, so the same circle is never walked twice.
+
 DISCIPLINE
 
   - One semantic event = one commit. Never mix mv/archival with UNRELATED
