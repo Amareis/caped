@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+# tests/hooks/test_commit_msg.sh — regression scenarios for the commit-msg hook.
+#
+# Builds a throwaway repo in mktemp, wires it with the real scripts/caped-init.sh
+# (so commits go through the shim -> dispatcher -> hook chain exactly as users see
+# it), and drives real git commits. Fixture/setup commits use --no-verify; only
+# the commit under test passes through the hook.
+#
+# The scenario list mirrors the hook's contract: every rule in
+# scripts/hooks/commit-msg has its case here. Adding a hook rule without a
+# scenario here is a process violation (see root README, lifecycle events).
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+pass=0; fail=0
+ok()  { printf 'PASS %s\n' "$1"; pass=$((pass + 1)); }
+bad() { printf 'FAIL %s\n' "$1"; fail=$((fail + 1)); }
+
+cd "$TMP"
+git init -q
+git config user.email test@caped.dev
+git config user.name "caped test"
+cp -r "$REPO_ROOT/scripts" scripts
+printf 'root\tREADME.md\tenforced\tREADME.md\nsrc\tsrc/\tenforced\tsrc/README.md\n' > caped.registry
+bash scripts/caped-init.sh >/dev/null
+mkdir -p src
+echo 'fn a() {}' > src/a.rs
+echo '# src spec' > src/README.md
+git add -A
+git commit -qm "seed" --no-verify
+
+msg() { printf '%b' "$1" > .caped-test-msg; }
+expect_accept() { # <name> — commit staged changes with .caped-test-msg, want hook accept
+  if git commit -q -F .caped-test-msg >/dev/null 2>&1; then ok "$1"
+  else bad "$1 — expected accept, hook rejected"; git reset -q; fi
+}
+expect_reject() { # <name> — want hook reject
+  if git commit -q -F .caped-test-msg >/dev/null 2>&1; then
+    bad "$1 — expected reject, hook accepted"; git reset -q --soft HEAD~1
+  else ok "$1"; fi
+}
+
+# --- Behavior: capability rules --------------------------------------------
+
+echo 'fn a2() {}' >> src/a.rs; git add src/a.rs
+msg 'change src\n'
+expect_reject 'enforced cap without Behavior'
+
+msg 'wip: change src\n'
+expect_accept 'wip subject counts as Behavior: wip'
+
+echo 'fn a3() {}' >> src/a.rs; git add src/a.rs
+msg 'change src\n\nBehavior: internal\n'
+expect_accept 'Behavior: internal passes'
+
+echo 'fn a4() {}' >> src/a.rs; git add src/a.rs
+msg 'change src contract\n\nrationale: needed for X\n\nBehavior: contract\n'
+expect_reject 'Behavior: contract without Spec and without spec file'
+
+msg 'change src contract\n\nrationale: needed for X\n\nBehavior: contract\nSpec: src/README.md\n'
+expect_accept 'contract with Spec trailer'
+
+echo '# src spec v2' > src/README.md; git add src/a.rs src/README.md 2>/dev/null || git add src/README.md
+echo 'fn a5() {}' >> src/a.rs; git add src/a.rs src/README.md
+msg 'change src contract\n\nrationale: spec changed inline\n\nBehavior: contract\n'
+expect_accept 'contract with the spec file in the commit (no trailer)'
+
+echo 'fn a6() {}' >> src/a.rs; git add src/a.rs
+msg 'adhoc src\n\nBehavior: contract\nSpec: README.md\n'
+expect_reject 'fileless contract without body'
+
+msg 'adhoc src\n\nFix X because Y; grounds: Z.\n\nBehavior: contract\nSpec: README.md\n'
+expect_accept 'fileless contract with rationale body'
+
+echo 'note' >> notes.txt; git add notes.txt
+msg 'free zone note\n'
+expect_accept 'path outside the registry needs no trailers'
+
+# --- Events: ideas/ ----------------------------------------------------------
+
+echo '- idea x' > ideas/x.md; git add ideas/x.md
+msg 'add idea x\n'
+expect_reject 'A ideas/x.md without Idea trailer'
+
+msg 'add idea x\n\nIdea: other\n'
+expect_reject 'A ideas/x.md with a wrong Idea trailer'
+
+msg 'add idea x\n\nIdea: x\n'
+expect_accept 'idea born with Idea: x'
+
+# --- Events: changes/ --------------------------------------------------------
+
+echo '- change y' > changes/y.md; git add changes/y.md
+msg 'add change y\n\nChange: y\n'
+expect_reject 'change added directly (not via mv)'
+
+msg 'seed change y\n\nChange: init\n'
+expect_accept 'direct add allowed for Change: init (adopting-repo seed)'
+
+echo '- more' >> changes/y.md; git add changes/y.md
+msg 'work on y\n'
+expect_reject 'M changes/y.md without Change trailer'
+
+msg 'work on y\n\nChange: y\n'
+expect_accept 'work commit with Change: y'
+
+echo 'n2' >> notes.txt; git add notes.txt
+msg 'free note\n\nChange: ghost\n'
+expect_reject 'Change: referencing a nonexistent change'
+
+# --- Events: mv into work ----------------------------------------------------
+
+echo '- idea z' > ideas/z.md; git add ideas/z.md
+msg 'add idea z\n\nIdea: z\n'
+expect_accept 'idea z born (setup for mv)'
+
+git mv ideas/z.md changes/z.md
+msg 'take z into work\n'
+expect_reject 'mv ideas->changes without Change trailer'
+
+msg 'take z into work\n\nChange: z\n'
+expect_accept 'mv into work with Change: z'
+
+echo '- idea a' > ideas/a.md; git add ideas/a.md
+msg 'add idea a\n\nIdea: a\n'
+expect_accept 'idea a born (setup for bad rename)'
+
+git mv ideas/a.md changes/b.md
+msg 'take a into work\n\nChange: b\n'
+expect_reject 'mv renaming the file is rejected'
+git mv changes/b.md ideas/a.md 2>/dev/null || true; git reset -q; git checkout -q -- ideas 2>/dev/null || true
+rm -f changes/b.md ideas/a.md 2>/dev/null || true
+
+# --- Events: archival --------------------------------------------------------
+
+git rm -q changes/y.md
+msg 'archive y\n\nChange: y\n'
+expect_reject 'D changes/y.md without Archives trailer'
+
+msg 'archive y\n\nChange: y\nArchives: y\n'
+expect_accept 'archival with Change + Archives'
+
+echo 'n3' >> notes.txt; git add notes.txt
+msg 'free note\n\nArchives: z\n'
+expect_reject 'Archives: without the file deletion'
+
+# --- Report ------------------------------------------------------------------
+
+echo
+echo "pass=$pass fail=$fail"
+[ "$fail" -eq 0 ]

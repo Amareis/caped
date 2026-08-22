@@ -2,3 +2,4 @@
 # state: enforced | legacy (legacy не проверяется хуком, считается в отчёте покрытия)
 root	README.md	enforced	README.md
 scripts	scripts/	enforced	README.md
+tests	tests/	enforced	README.md

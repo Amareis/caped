@@ -77,6 +77,9 @@ DISCIPLINE
     change (same Change: trailer, decisions appended to its file); a new
     decision territory → a new idea with spawned_from (commit with
     Change: <parent> + Idea: <child>).
+  - A change that alters behavior leaves its scenarios as tests at archive
+    time (for this tool: a hook rule without a scenario in tests/hooks/ is a
+    process violation); docs/process-only changes are exempt.
   - Specs (capability READMEs, ideas/changes) are written in the project's
     language; the tool's interface texts (this dump, AGENTS.md stub, hook
     messages) are in English.

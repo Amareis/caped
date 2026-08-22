@@ -137,8 +137,10 @@ if [ -n "$CAP_NAME" ]; then
                     err "Behavior: contract needs a Spec: trailer or a change to $CAP_SPEC in the commit"
                 fi
                 # Fileless contract (no Change:) is an adhoc decision: the commit body
-                # must carry the rationale — subject and trailers don't count.
-                BODY="$(tail -n +2 "$MSG_FILE" | sed '/^#/d; /^[[:space:]]*$/d; /^[A-Za-z][A-Za-z-]*: /d' || true)"
+                # must carry the rationale — subject and the actual trailer block
+                # (as parsed by git, not just trailer-LOOKING lines) don't count.
+                TRAILER_BLOCK="$(git interpret-trailers --only-trailers "$MSG_FILE" || true)"
+                BODY="$(tail -n +2 "$MSG_FILE" | grep -vxF -f <(printf '%s\n' "$TRAILER_BLOCK") | sed '/^#/d; /^[[:space:]]*$/d' || true)"
                 if [ -z "$CHANGE" ] && [ -z "$BODY" ]; then
                     err "fileless contract (no Change:) is an adhoc decision — the commit body must carry the mini-provenance (what, why, on what grounds)"
                 fi
