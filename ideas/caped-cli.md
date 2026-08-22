@@ -33,6 +33,10 @@ spawned_from: null
 
 —
 
+## Рассмотрено и отклонено
+
+—
+
 ## Променанс
 
 Агент: порядок depends_on (check/test-hooks/render до cli) — бинарь без verify-инфраструктуры придётся
