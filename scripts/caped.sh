@@ -117,7 +117,10 @@ COMMANDS
   caped.sh init         — wire up a repo (hook shims, registry, ideas/ +
                           changes/). Idempotent: safe to re-run, it only
                           repairs missing pieces and refreshes the report.
-  caped.sh check        — frontmatter/section validation (not implemented yet)
+  caped.sh check        — structural validation of ideas//changes/ (frontmatter,
+                          required sections, spawned_from resolves to a live or
+                          archived entity). Errors fail; marker-fullness gaps in
+                          enforced specs are warnings only
   caped.sh trace        — requirement<->test marker balance: defs are [#<slug>]
                           markers in enforced spec files, refs are the same
                           markers in tests/code; fails on uncovered, dangling
@@ -141,8 +144,8 @@ case "$cmd" in
     exec "$hook" "$@"
     ;;
   check)
-    echo "caped: 'check' is not implemented yet (see README, the tool's own-bootstrap section)" >&2
-    exit 1
+    shift
+    exec python3 "$DIR/caped-check.py" "$@"
     ;;
   render)
     shift
