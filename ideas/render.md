@@ -1,6 +1,6 @@
 ---
-name: materialise
-summary: caped materialise — derived views в .caped/: индекс идей, архив чейнджей из гита, coverage; plan.md — in-place исключение
+name: render
+summary: caped render — derived views в .caped/: индекс идей, архив чейнджей из гита, coverage; plan.md — in-place исключение
 phase: v0
 priority: medium
 depends_on: []
@@ -14,16 +14,16 @@ spawned_from: null
 
 ## Контекст
 
-Из диалога: «индекс идей должен автоматом рендериться через frontmatter»; «можно отдельную materialise
+Из диалога: «индекс идей должен автоматом рендериться через frontmatter»; «можно отдельную render
 команду сделать — она рендерит/удаляет все индексы и архив чейнджей; главное, чтобы их закоммитить случайно
 нельзя было». FUSE-маунт отклонён (README, «Рассмотрено и отклонено»). `.caped/` уже в .gitignore с init.
 
 ## Требования
 
-1. `caped.sh materialise` рендерит в `.caped/`: `ideas-index.md` (таблица из фронтматера: name, summary,
+1. `caped.sh render` рендерит в `.caped/`: `ideas-index.md` (таблица из фронтматера: name, summary,
    phase, priority, spawned_from), `archive.md` (заархивированные чейнджи из `git log --grep=Archives:`,
-   с датами и ссылками на коммиты), `coverage.txt` (уже считает init — вынести сюда, init зовёт materialise).
-2. `caped.sh materialise --clean` удаляет `.caped/` целиком.
+   с датами и ссылками на коммиты), `coverage.txt` (уже считает init — вынести сюда, init зовёт render).
+2. `caped.sh render --clean` удаляет `.caped/` целиком.
 3. Защита от случайного коммита: .gitignore (есть) + pre-commit проверка, что ничего из `.caped/` не staged.
 4. `plan.md` у корня — сознательное исключение: единственный view in-place и закоммиченный, потому что человек
    читает его чаще агента; рендерится тем же кодом из приоритетов фронтматера.
@@ -37,9 +37,11 @@ spawned_from: null
 
 ## Променанс
 
-Человек: цитаты про индекс через фронтматер и materialise-команду (см. корневой README, променанс). Агент:
+Человек: цитаты про индекс через фронтматер и render-команду (см. корневой README, променанс). Имя:
+«materialise» длинное и с британским спеллингом — переименовано в `render` (альтернативы `views`/`gen`
+отклонены: первое читается как «покажи», второе — дженерик). Агент:
 coverage переносится из init сюда (один генератор views вместо двух; init сохраняет печать сводки через вызов
-materialise — основание: не плодить второй источник того же отчёта).
+render — основание: не плодить второй источник того же отчёта).
 
 ## Открытые вопросы
 

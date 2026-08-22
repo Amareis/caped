@@ -3,7 +3,7 @@ name: caped-cli
 summary: v0.1 — однобинарный CLI вместо шелл-скриптов; единый источник текста правил для дампа и хука
 phase: v0.1
 priority: medium
-depends_on: [caped-check, test-hooks, materialise]
+depends_on: [caped-check, test-hooks, render]
 spawned_from: null
 ---
 
@@ -21,7 +21,7 @@ spawned_from: null
 
 ## Требования
 
-1. Один бинарь `caped` с сабкомандами init/hook/check/materialise, семантика 1:1 с шелл-версией.
+1. Один бинарь `caped` с сабкомандами init/hook/check/render, семантика 1:1 с шелл-версией.
 2. Текст правил — один источник в коде: bare-дамп и сообщения ошибок хука генерятся из него.
 3. Репо тула продолжает жить по своей схеме; реестр пополняется капами тула (hook, registry, index-gen,
    report) — с фасадами, пилот публичных интерфейсов уже на своём коде.
@@ -35,7 +35,7 @@ spawned_from: null
 
 ## Променанс
 
-Агент: порядок depends_on (check/test-hooks/materialise до cli) — бинарь без verify-инфраструктуры придётся
+Агент: порядок depends_on (check/test-hooks/render до cli) — бинарь без verify-инфраструктуры придётся
 тащить всё разом, а так каждая часть уже отдогфужена в шелле. Язык реализации открыт (rust — по аналогии с
 kudach-стеком; но тащить rust-рампу ради 300 строк логики — вопрос).
 

@@ -3,7 +3,7 @@ name: kudach-adoption
 summary: Первый adopting-проект — kudach: реестр всё-legacy, advisory, первая enforced-капа feed с фасадным пилотом
 phase: v0
 priority: medium
-depends_on: [caped-check, test-hooks, secretary]
+depends_on: [caped-check, test-hooks, secretary, render]
 spawned_from: null
 ---
 
