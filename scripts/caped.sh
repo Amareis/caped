@@ -79,6 +79,12 @@ DISCIPLINE
     Change: <parent> + Idea: <child>). Deferred scope is a finding too: a
     piece cut mid-change ("later") becomes an idea with spawned_from in the
     SAME commit that cuts it — silently deferred means lost.
+  - Renaming an idea is one commit: git mv + the name: frontmatter fix + all
+    referrers (depends_on, spawned_from, prose) — referrers ARE the rename's
+    content, not unrelated edits; the one-line file diff keeps rename
+    detection intact. No new trailer: the event is derived from the diff.
+    Validation (name matches filename, no dangling refs) is caped check's
+    territory, not the hook's.
   - A change that alters behavior leaves its scenarios as tests at archive
     time (for this tool: a hook rule without a scenario in tests/hooks/ is a
     process violation); docs/process-only changes are exempt.
