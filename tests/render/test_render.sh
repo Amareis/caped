@@ -125,6 +125,45 @@ case "$OUT" in
   *) bad "live idea row wrong: $OUT" ;;
 esac
 
+
+# --- change show: rebuild an entity in one call ----------------------------
+expect_out 'change show of an archived change [#change-show]' change show alpha
+case "$OUT" in
+  *"== change: alpha =="*"archived"*"архив: alpha"*) ok 'archived: final doc + timeline [#change-show]' ;;
+  *) bad "archived show wrong: $OUT" ;;
+esac
+expect_out 'change show of a live idea [#change-show]' change show beta
+case "$OUT" in
+  *"== change: beta =="*"idea"*"идея beta"*) ok 'live idea: doc from FS [#change-show]' ;;
+  *) bad "live idea show wrong: $OUT" ;;
+esac
+add_idea gamma "an in-work change"
+git add -A
+commit_msg <<'EOF'
+идея gamma
+
+Idea: gamma
+EOF
+git mv ideas/gamma.md changes/gamma.md
+commit_msg <<'EOF'
+в работу gamma
+
+Change: gamma
+EOF
+expect_out 'change show of an in-work change [#change-show]' change show gamma
+case "$OUT" in
+  *"in work"*"в работу gamma"*) ok 'in-work: doc from FS + timeline [#change-show]' ;;
+  *) bad "in-work show wrong: $OUT" ;;
+esac
+set +e
+OUT="$(bash "$CAPED" change show ghost 2>&1)"; RC=$?
+set -e
+if [ "$RC" -eq 2 ] && printf '%s' "$OUT" | grep -qE 'alpha|beta|gamma'; then
+  ok 'unknown name fails exit 2 with candidates [#change-show]'
+else
+  bad "unknown show wrong: $OUT rc=$RC"
+fi
+
 # --write materialises views with the generated header. [#render-write]
 expect_out '--write succeeds [#render-write]' --write
 missing=""

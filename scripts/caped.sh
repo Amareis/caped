@@ -255,6 +255,11 @@ COMMANDS
                           changelog, repo-agnostic (render changelog renders the
                           current repo's contracts instead); a missing bundle is
                           a valid answer (exit 0) [#tool-version]
+  caped change show    — rebuild an entity in one call: live text (FS) or the
+                          final document (from the Archives-commit parent); the
+                          event timeline and every commit with the entity's
+                          Idea:/Change:/Archives:/Adhoc: trailer; unknown names
+                          fail exit 2 with the closest candidates [#change-show]
   caped render [view] — derived views (plan, history, coverage, reqs)
                           printed to
                           stdout — read-only by default [#render-stdout]; --json
@@ -313,6 +318,10 @@ case "$cmd" in
     fi
     if [ -f "$bundle" ]; then head -1 "$bundle"; else miss; fi
     exit 0
+    ;;
+  change)
+    shift
+    exec python3 "$DIR/caped-render.py" change "$@"
     ;;
   check)
     shift
