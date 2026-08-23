@@ -131,7 +131,13 @@ SPAWNING IDEAS [#idea-autonomy] (the agent decides WHERE a decision lives — do
     alternatives with grounds, so the same circle is never walked twice.
   - Open questions promote: a small open question is answered right in the
     change and dies with it; a question that became work is promoted to an
-    idea (spawned_from records the origin) [#question-promotion].
+    idea (spawned_from records the origin) [#question-promotion]. A question
+    flagged for the future ("v0.1/later/позже/отложено") is deposited into
+    ideas/_backlog.md — the reserved pseudo-idea: a regular valid idea file
+    that is NEVER taken into work; its Requirements hold the parked thoughts
+    (render reqs shows them; line format: thought | from <change> | date);
+    picking an entry up means spawning a real idea from it. At archive the
+    hook enforces: answer, promote, or deposit [#question-gate].
 
 DISCIPLINE
 
@@ -264,9 +270,16 @@ case "$cmd" in
   hook)
     shift
     [ $# -ge 1 ] || { echo "caped: hook <name> [args...]" >&2; exit 2; }
+    if [ "$1" = "post-commit" ]; then
+      exec "$DIR/caped-events.sh" post-commit
+    fi
     hook="$DIR/hooks/$1"; shift
     [ -x "$hook" ] || { echo "caped: no such hook: $hook" >&2; exit 2; }
     exec "$hook" "$@"
+    ;;
+  events)
+    shift
+    exec "$DIR/caped-events.sh" "$@"
     ;;
   check)
     shift
