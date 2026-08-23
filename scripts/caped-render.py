@@ -1,19 +1,26 @@
 #!/usr/bin/env python3
 """caped render — derived views of the tracker, printed to stdout.
 
+Every view is built as structured data first, then rendered as text (default,
+for the eyes) or JSON (--json, for machines) — both forms share the one
+generator. `--write` materialises BOTH forms into .caped/ (plan.md + plan.json,
+history.md + history.json, coverage.txt + coverage.json), `--clean` removes
+.caped/.
+
 Views:
-  plan     — in-work changes (with last-commit age, stalled marked) and ideas
-             from frontmatter, ideas grouped by priority
+  plan     — in-work changes (last commit with subject, stalled marked) and
+             ideas from frontmatter, sorted by phase then priority; ideas whose
+             depends_on is not archived yet are marked BLOCKED
   history  — the change archive reconstructed from git trailers (Idea: born,
-             Archives: archived) with dates, commits and summaries, plus the
+             Archives: archived) with dates, commits and summaries; live
+             entities get their real status from the filesystem (ideas/ = idea,
+             changes/ = in work), inconsistencies show as '?'; plus the
              fileless adhoc contract commits (Behavior: contract without a
              Change: trailer)
   coverage — tracked files vs caped.registry (enforced/legacy/declared/free,
-             longest prefix wins)
-
-Default is read-only: nothing is written. `--write` materialises the views
-into .caped/ (plan.md, history.md, coverage.txt), `--clean` removes .caped/.
+             longest prefix wins), per-cap rows and the top free paths
 """
+import json
 import re
 import shutil
 import subprocess
@@ -23,6 +30,7 @@ from pathlib import Path
 
 RS, FS = "\x1e", "\x1f"
 STALLED_DAYS = 7
+TOP_FREE = 5
 
 VIEW_FILES = {"plan": "plan.md", "history": "history.md", "coverage": "coverage.txt"}
 
@@ -54,6 +62,16 @@ def parse_frontmatter_text(text):
     return fm
 
 
+def parse_list(value):
+    """'[a, b]' -> ['a', 'b']; anything empty -> []."""
+    if not value:
+        return []
+    v = value.strip()
+    if v.startswith("[") and v.endswith("]"):
+        v = v[1:-1]
+    return [x.strip() for x in v.split(",") if x.strip()]
+
+
 def entities():
     out = []
     for status, d in (("in-work", "changes"), ("idea", "ideas")):
@@ -69,48 +87,17 @@ def entities():
     return out
 
 
-def last_commit_info(path):
-    out = run(["git", "log", "-1", "--date=short", "--format=%ad%x1f%h", "--", str(path)]).strip()
+def last_commit(path):
+    out = run(["git", "log", "-1", "--date=short", f"--format=%ad%x1f%h%x1f%s", "--", str(path)]).strip()
     if not out:
-        return "", 0
-    d, h = out.split(FS)
+        return None, 0
+    parts = (out.split(FS) + ["", "", ""])[:3]
+    d, h, subject = parts
     try:
         age = (date.today() - date.fromisoformat(d)).days
     except ValueError:
         age = 0
-    return f"{d} {h}", age
-
-
-def view_plan():
-    lines = ["== plan =="]
-    ents = entities()
-    in_work = [e for e in ents if e["_status"] == "in-work"]
-    ideas = [e for e in ents if e["_status"] == "idea"]
-
-    lines.append("-- in work --")
-    if not in_work:
-        lines.append("  (none)")
-    for e in in_work:
-        info, age = last_commit_info(e["_path"].relative_to(ROOT))
-        stalled = f"  STALLED >{STALLED_DAYS}d" if age > STALLED_DAYS else ""
-        lines.append(f"  {e['name']:<20} last: {info} ({age}d ago){stalled}")
-        if e.get("summary"):
-            lines.append(f"      {e['summary']}")
-
-    lines.append("-- ideas --")
-    if not ideas:
-        lines.append("  (none)")
-    prio_rank = {"high": 0, "medium": 1, "mid": 1, "low": 2}
-    ideas.sort(key=lambda e: (prio_rank.get(e.get("priority", ""), 3), e["name"]))
-    for e in ideas:
-        bits = [b for b in (e.get("phase"), e.get("priority")) if b]
-        deps = e.get("depends_on") or "[]"
-        spawned = e.get("spawned_from") or "-"
-        head = " ".join(bits)
-        lines.append(f"  {e['name']:<20} {head:<14} deps: {deps:<36} from: {spawned}")
-        if e.get("summary"):
-            lines.append(f"      {e['summary']}")
-    return "\n".join(lines)
+    return {"date": d, "hash": h, "subject": subject}, age
 
 
 def history_events():
@@ -140,30 +127,6 @@ def archived_summary(name, commit):
     return parse_frontmatter_text(res.stdout).get("summary", "")
 
 
-def adhoc_events():
-    """Fileless contract commits: Behavior: contract without a Change: trailer.
-
-    Newest first, straight from git log. [#render-history-adhoc]
-    """
-    log = run(["git", "log", "--date=short", f"--format={RS}%H{FS}%ad{FS}%B"])
-    out = []
-    for rec in log.split(RS):
-        rec = rec.strip("\n")
-        if not rec:
-            continue
-        parts = rec.split(FS, 2)
-        if len(parts) < 3:
-            continue
-        h, d, body = parts
-        if not re.search(r"^Behavior:\s*contract\s*$", body, re.M):
-            continue
-        if re.search(r"^Change:\s*\S+\s*$", body, re.M):
-            continue
-        subject = body.strip().split("\n", 1)[0]
-        out.append((d, h[:8], subject))
-    return out
-
-
 def rename_aliases():
     """Entity renames (R ideas/A.md -> ideas/B.md) — history stitches old names to new."""
     log = run(["git", "log", f"--format={RS}%H", "--name-status", "-M", "--", "ideas", "changes"])
@@ -189,40 +152,161 @@ def resolve(name, alias):
     return name
 
 
-def view_history():
+# --- plan -----------------------------------------------------------------
+
+
+def plan_data():
+    _, archived = history_events()
+    alias = rename_aliases()
+    done = {resolve(n, alias) for n in archived}
+    in_work, ideas = [], []
+    for e in entities():
+        lc, age = last_commit(e["_path"].relative_to(ROOT))
+        deps = parse_list(e.get("depends_on"))
+        sp = (e.get("spawned_from") or "").strip()
+        row = {
+            "name": e["name"],
+            "status": e["_status"],
+            "summary": e.get("summary", ""),
+            "phase": e.get("phase", ""),
+            "priority": e.get("priority", ""),
+            "deps": deps,
+            "spawned_from": None if sp.lower() in ("", "-", "null", "none", "~") else sp,
+            "last_commit": lc,
+            "age_days": age,
+            "stalled": age > STALLED_DAYS,
+            "blocked": [d for d in deps if resolve(d, alias) not in done],
+        }
+        (in_work if e["_status"] == "in-work" else ideas).append(row)
+    prio_rank = {"high": 0, "medium": 1, "mid": 1, "low": 2}
+    ideas.sort(key=lambda r: (r["phase"] or "—", prio_rank.get(r["priority"], 3), r["name"]))
+    in_work.sort(key=lambda r: r["name"])
+    return {"view": "plan", "in_work": in_work, "ideas": ideas}
+
+
+def plan_row_line(r):
+    marks = ""
+    if r["blocked"]:
+        marks += f"  BLOCKED (dep unarchived: {', '.join(r['blocked'])})"
+    if r["stalled"]:
+        marks += f"  STALLED >{STALLED_DAYS}d"
+    lc = r["last_commit"]
+    if lc:
+        age = f" ({r['age_days']}d ago)" if r["age_days"] else " (today)"
+        last = f"last: {lc['date']} {lc['hash']} «{lc['subject']}»{age}"
+    else:
+        last = "last: —"
+    bits = " ".join(b for b in (r["phase"], r["priority"]) if b)
+    deps = ", ".join(r["deps"]) if r["deps"] else "—"
+    frm = r["spawned_from"] or "—"
+    return f"{r['name']:<20} {bits:<14} {last}  deps: {deps}  from: {frm}{marks}"
+
+
+def view_plan_text(data):
+    lines = ["== plan ==", "-- in work --"]
+    if not data["in_work"]:
+        lines.append("  (none)")
+    for r in data["in_work"]:
+        lines.append("  " + plan_row_line(r))
+        if r["summary"]:
+            lines.append(f"      {r['summary']}")
+    lines.append("-- ideas --")
+    if not data["ideas"]:
+        lines.append("  (none)")
+    for r in data["ideas"]:
+        lines.append("  " + plan_row_line(r))
+        if r["summary"]:
+            lines.append(f"      {r['summary']}")
+    return "\n".join(lines)
+
+
+# --- history ----------------------------------------------------------------
+
+
+def adhoc_events():
+    """Fileless contract commits: Behavior: contract without a Change: trailer.
+
+    Newest first, straight from git log. [#render-history-adhoc]
+    """
+    log = run(["git", "log", "--date=short", f"--format={RS}%H{FS}%ad{FS}%B"])
+    out = []
+    for rec in log.split(RS):
+        rec = rec.strip("\n")
+        if not rec:
+            continue
+        parts = rec.split(FS, 2)
+        if len(parts) < 3:
+            continue
+        h, d, body = parts
+        if not re.search(r"^Behavior:\s*contract\s*$", body, re.M):
+            continue
+        if re.search(r"^Change:\s*\S+\s*$", body, re.M):
+            continue
+        subject = body.strip().split("\n", 1)[0]
+        out.append({"date": d, "hash": h[:8], "subject": subject})
+    return out
+
+
+def history_data():
     born, archived = history_events()
     alias = rename_aliases()
+    live = {}
+    for d, st in (("ideas", "idea"), ("changes", "in work")):
+        dd = ROOT / d
+        if dd.is_dir():
+            for f in dd.glob("*.md"):
+                live[f.stem] = st
     merged = {}
     for n, v in born.items():
         merged.setdefault(resolve(n, alias), {})["born"] = (*v, n)
     for n, v in archived.items():
         merged.setdefault(resolve(n, alias), {})["arch"] = v
-    lines = ["== history (from git trailers) ==", f"  {'change':<22} {'born':<19} {'archived':<19} summary"]
-    if not merged:
-        lines.append("  (no archived or born entities yet)")
-    rows = sorted(
-        merged.items(),
-        key=lambda kv: (kv[1].get("arch") or kv[1].get("born"))[0],
-        reverse=True,
-    )
-    for n, ev in rows:
+    rows = []
+    for n, ev in merged.items():
         b = ev.get("born")
         a = ev.get("arch")
-        bcell = f"{b[0]} {b[1]}" if b else "-"
-        acell = f"{a[0]} {a[1]}" if a else "- (in work or idea)"
-        old = f" (was: {b[2]})" if b and b[2] != n else ""
-        summary = archived_summary(n, a[2]) if a else ""
-        lines.append(f"  {n:<22} {bcell:<19} {acell:<19} {summary}{old}")
-    adhoc = adhoc_events()
+        if a:
+            status = "archived"
+        else:
+            status = live.get(n, "?")
+        rows.append(
+            {
+                "name": n,
+                "born": {"date": b[0], "hash": b[1]} if b else None,
+                "archived": {"date": a[0], "hash": a[1]} if a else None,
+                "status": status,
+                "was": b[2] if b and b[2] != n else None,
+                "summary": archived_summary(n, a[2]) if a else "",
+            }
+        )
+    rows.sort(key=lambda r: (r["archived"] or r["born"] or {"date": ""})["date"], reverse=True)
+    return {"view": "history", "rows": rows, "adhoc": adhoc_events()}
+
+
+def view_history_text(data):
+    lines = ["== history (from git trailers) ==", f"  {'change':<22} {'born':<19} {'archived':<19} summary"]
+    if not data["rows"]:
+        lines.append("  (no archived or born entities yet)")
+    for r in data["rows"]:
+        bcell = f"{r['born']['date']} {r['born']['hash']}" if r["born"] else "-"
+        if r["archived"]:
+            acell = f"{r['archived']['date']} {r['archived']['hash']}"
+        else:
+            acell = f"- {r['status']}"  # idea / in work / ? (drift, visible by design)
+        old = f" (was: {r['was']})" if r["was"] else ""
+        lines.append(f"  {r['name']:<22} {bcell:<19} {acell:<19} {r['summary']}{old}")
     lines.append("-- adhoc decisions (fileless contract commits) --")
-    if not adhoc:
+    if not data["adhoc"]:
         lines.append("  (none)")
-    for d, h, subject in adhoc:
-        lines.append(f"  {d} {h}  {subject}")
+    for a in data["adhoc"]:
+        lines.append(f"  {a['date']} {a['hash']}  {a['subject']}")
     return "\n".join(lines)
 
 
-def view_coverage():
+# --- coverage ---------------------------------------------------------------
+
+
+def coverage_data():
     caps = []
     reg = ROOT / "caped.registry"
     if reg.exists():
@@ -231,24 +315,50 @@ def view_coverage():
                 continue
             parts = line.split("\t")
             if len(parts) >= 3:
-                caps.append((parts[1], parts[2]))
-    caps.sort(key=lambda c: -len(c[0]))  # longest prefix wins, as in the hook
+                caps.append({"name": parts[0], "prefix": parts[1], "state": parts[2]})
+    caps.sort(key=lambda c: -len(c["prefix"]))  # longest prefix wins, as in the hook
 
-    counts = {}
+    by_state = {}
+    per_cap = {c["name"]: 0 for c in caps}
+    free_top = {}
     for f in run(["git", "ls-files"]).splitlines():
-        state = next((s for p, s in caps if f.startswith(p)), "free")
-        counts[state] = counts.get(state, 0) + 1
+        cap = next((c for c in caps if f.startswith(c["prefix"])), None)
+        if cap is None:
+            by_state["free"] = by_state.get("free", 0) + 1
+            top = f.split("/", 1)[0] + ("/" if "/" in f else "")
+            free_top[top] = free_top.get(top, 0) + 1
+        else:
+            by_state[cap["state"]] = by_state.get(cap["state"], 0) + 1
+            per_cap[cap["name"]] += 1
+    for c in caps:
+        c["files"] = per_cap[c["name"]]
+    top_free = [
+        {"path": p, "files": n} for p, n in sorted(free_top.items(), key=lambda kv: -kv[1])[:TOP_FREE]
+    ]
+    total = sum(by_state.values())
+    return {"view": "coverage", "total": total, "by_state": by_state, "caps": caps, "top_free": top_free}
 
-    total = sum(counts.values())
-    lines = [f"== coverage — {total} tracked files, longest-prefix-wins =="]
+
+def view_coverage_text(data):
+    lines = [f"== coverage — {data['total']} tracked files, longest-prefix-wins =="]
     for state in ("enforced", "declared", "legacy", "free"):
-        n = counts.get(state, 0)
+        n = data["by_state"].get(state, 0)
         note = " (outside the registry — ignored by the hook)" if state == "free" else ""
         lines.append(f"  {state:<9} {n:>4} files{note}")
+    lines.append("-- per cap --")
+    if not data["caps"]:
+        lines.append("  (no registry)")
+    for c in data["caps"]:
+        lines.append(f"  {c['name']:<16} {c['state']:<9} {c['files']:>4} files  ({c['prefix']})")
+    if data["top_free"]:
+        lines.append("-- top free paths --")
+        for t in data["top_free"]:
+            lines.append(f"  {t['path']:<24} {t['files']:>4} files")
     return "\n".join(lines)
 
 
-VIEWS = {"plan": view_plan, "history": view_history, "coverage": view_coverage}
+VIEW_DATA = {"plan": plan_data, "history": history_data, "coverage": coverage_data}
+VIEW_TEXT = {"plan": view_plan_text, "history": view_history_text, "coverage": view_coverage_text}
 
 GENERATED_HEADER = "<!-- generated by `caped render --write` — do not edit, regenerate instead -->\n\n"
 
@@ -260,26 +370,31 @@ def main(argv):
         return 0
 
     write = "--write" in argv
+    as_json = "--json" in argv
     names = [a for a in argv if not a.startswith("-")]
-    unknown = [a for a in argv if a.startswith("-") and a != "--write"]
+    unknown = [a for a in argv if a.startswith("-") and a not in ("--write", "--json")]
     if unknown:
-        die(f"unknown flag(s): {' '.join(unknown)} (have: --write, --clean)")
+        die(f"unknown flag(s): {' '.join(unknown)} (have: --write, --clean, --json)")
     for n in names:
-        if n not in VIEWS:
-            die(f"unknown view '{n}' (have: {', '.join(VIEWS)})")
+        if n not in VIEW_DATA:
+            die(f"unknown view '{n}' (have: {', '.join(VIEW_DATA)})")
     if not names:
-        names = list(VIEWS)
+        names = list(VIEW_DATA)
 
+    outdir = ROOT / ".caped"
     for n in names:
-        text = VIEWS[n]()
-        print(text)
-        print()
+        data = VIEW_DATA[n]()
+        text = VIEW_TEXT[n](data)
+        print(json.dumps(data, ensure_ascii=False, indent=2) if as_json else text)
+        if not as_json:
+            print()
         if write:
-            outdir = ROOT / ".caped"
             outdir.mkdir(exist_ok=True)
             (outdir / VIEW_FILES[n]).write_text(GENERATED_HEADER + text + "\n", encoding="utf-8")
+            json_file = outdir / (VIEW_FILES[n].split(".", 1)[0] + ".json")
+            json_file.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if write:
-        print("caped render: written to .caped/ (" + ", ".join(VIEW_FILES[n] for n in names) + ")")
+        print("caped render: written to .caped/ (" + ", ".join(VIEW_FILES[n] for n in names) + " + .json)")
     return 0
 
 

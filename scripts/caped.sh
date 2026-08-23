@@ -203,10 +203,15 @@ COMMANDS
                           except spec files; fails on uncovered, dangling
                           or duplicated slugs ('[#<slug> no-test]' exempts)
   caped.sh render [view]— derived views (plan, history, coverage) printed to
-                          stdout — read-only by default [#render-stdout]. --write
-                          materialises them into .caped/ (gitignored)
-                          [#render-write], --clean removes it [#render-clean];
-                          history is rebuilt from git trailers [#render-history]
+                          stdout — read-only by default [#render-stdout]; --json
+                          prints the machine-readable form of a view (same
+                          generator as the text) [#render-json]. --write
+                          materialises BOTH forms into .caped/ (gitignored)
+                          [#render-write], --clean removes it [#render-clean].
+                          The plan marks entities with unarchived depends_on as
+                          BLOCKED [#render-blocked]; history is rebuilt from git
+                          trailers [#render-history], reads the live status of
+                          unarchived entities from the filesystem ('?' on drift)
                           and also lists fileless adhoc contract commits
                           (Behavior: contract without Change:)
                           [#render-history-adhoc]

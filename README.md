@@ -124,8 +124,16 @@ verify) — это замена openspec-валидации SHALL-граммат
 
 - [#render-stdout dump] `caped render` — CLI чтения: печатает views (`plan`, `history`, `coverage`) в stdout
   и по умолчанию ничего не пишет.
-- [#render-write dump] `--write` материализует views в `.caped/` (`plan.md`, `history.md`, `coverage.txt`,
-  gitignored — этого достаточно, `git add` без `-f` не пропустит).
+- [#render-json dump] Любой view имеет машиночитаемую форму `--json`: вложенный объект со стабильными ключами
+  (name, status, phase, priority, deps[], spawned_from, last_commit{date,hash,subject}, age_days, stalled,
+  blocked); text и JSON делят один генератор данных, text остаётся дефолтом.
+- [#render-blocked dump] План помечает сущности с незархивированными `depends_on` маркером
+  `BLOCKED (dep unarchived: …)` — гейт виден до взятия в работу; блокировка считается только по depends_on
+  (архив — из `Archives:`-трейлеров), stalled — отдельный флаг, в blocked не смешивается. Живой статус
+  неархивированных в history читается из файловой системы (`ideas/` = idea, `changes/` = in work),
+  расхождение (рождена по `Idea:`, файла нет, `Archives:` нет) показывается как «?» — дрейф виден наружу.
+- [#render-write dump] `--write` материализует views в `.caped/` (`plan.md`, `history.md`, `coverage.txt` +
+  `.json`-форма рядом, gitignored — этого достаточно, `git add` без `-f` не пропустит).
 - [#render-clean dump] `--clean` удаляет `.caped/`.
 - [#render-history dump] История собирается из трейлеров git log (`Idea:` — рождение, `Archives:` — архивация;
   summary архивного — из версии файла перед удалением), ренеймы сущностей склеиваются rename detection-ом
