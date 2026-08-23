@@ -279,6 +279,100 @@ case "$OUT" in
   *) bad "top free paths missing: $OUT" ;;
 esac
 
+
+# --- reqs: requirement index from specs and ideas ---------------------------
+# Fixture markers are built via $MK so the test source itself is not read
+# by trace as a requirement reference.
+MK='[#'
+new_repo
+cat > README.md <<FIX
+# fixture
+
+## Requirements
+
+- ${MK}alpha-rule] Alpha rule gist — the first line is self-contained.
+  A wrapped continuation line that never enters the index.
+- ${MK}beta-rule no-test] Beta rule gist on one line.
+
+## Other
+
+- ${MK}gamma-rule] not a def, just prose outside the section
+FIX
+mkdir -p ideas
+cat > ideas/zeta.md <<FIX
+---
+name: zeta
+summary: an idea with requirements
+---
+
+## Requirements
+
+- Zeta wants a thing done quickly.
+- ${MK}zeta-opt] Optional slug leads the bullet when present.
+FIX
+git add -A
+commit_msg <<'FIX'
+фикстура reqs
+
+Idea: zeta
+FIX
+expect_out 'render reqs succeeds [#render-reqs]' reqs
+case "$OUT" in
+  *"${MK}alpha-rule] Alpha rule gist — the first line is self-contained. …"*) ok 'spec def: slug + first-line gist, wrap marked [#render-reqs]' ;;
+  *) bad "spec req row wrong: $OUT" ;;
+esac
+case "$OUT" in
+  *"${MK}beta-rule] Beta rule gist on one line."*"(README.md)"*) ok 'single-line gist without wrap marker [#render-reqs]' ;;
+  *) bad "single-line gist wrong: $OUT" ;;
+esac
+case "$OUT" in
+  *"Zeta wants a thing done quickly."*"(ideas/zeta.md)"*) ok 'idea bullet gist listed with source [#render-reqs]' ;;
+  *) bad "idea req row missing: $OUT" ;;
+esac
+case "$OUT" in
+  *"${MK}zeta-opt] Optional slug leads the bullet"*) ok 'optional idea slug shown [#render-reqs]' ;;
+  *) bad "idea slug row wrong: $OUT" ;;
+esac
+case "$OUT" in
+  *gamma-rule*) bad "marker outside the section leaked into reqs: $OUT" ;;
+  *) ok 'prose marker outside the section not indexed [#render-reqs]' ;;
+esac
+expect_out 'render reqs --json succeeds [#render-reqs]' reqs --json
+if printf '%s' "$OUT" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["view"]=="reqs"; assert any(r["slug"]=="alpha-rule" for r in d["specs"]); assert any(r["source"]=="ideas/zeta.md" for r in d["entities"])' 2>/dev/null
+then ok 'reqs --json parses, specs/entities present [#render-reqs]'
+else bad "reqs --json invalid: $OUT"; fi
+
+# --- adhoc excerpt: body rationale visible under the subject -----------------
+new_repo
+echo a >> README.md; git add -A
+commit_msg <<'FIX'
+адхок: решение с ратионале
+
+Ратионале первая строка — видна в листинге истории.
+Вторая строка уже не попадает.
+
+Behavior: contract
+Spec: README.md
+FIX
+expect_out 'history with adhoc excerpt succeeds [#render-history-adhoc]' history
+case "$OUT" in
+  *"адхок: решение с ратионале"*"Ратионале первая строка — видна в листинге истории."*) ok 'adhoc body excerpt under the subject [#render-history-adhoc]' ;;
+  *) bad "adhoc excerpt missing: $OUT" ;;
+esac
+case "$OUT" in
+  *"Вторая строка"*) bad "second body line leaked into the excerpt: $OUT" ;;
+  *) ok 'excerpt is the first substantive line only [#render-history-adhoc]' ;;
+esac
+
+# --- --write materialises the reqs view too ----------------------------------
+expect_out '--write with reqs succeeds [#render-write]' --write
+missing=""
+for f in plan.md history.md coverage.txt reqs.md plan.json history.json coverage.json reqs.json; do
+  [ -f ".caped/$f" ] || missing="$missing $f"
+done
+if [ -z "$missing" ]; then ok '--write creates reqs.md + reqs.json too [#render-write]'
+else bad "--write missed:$missing"; fi
+
 echo
 echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ]

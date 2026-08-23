@@ -19,6 +19,9 @@ Views:
              Change: trailer)
   coverage — tracked files vs caped.registry (enforced/legacy/declared/free,
              longest prefix wins), per-cap rows and the top free paths
+  reqs     — the requirement index in one view: slug + first-line gist from
+             the '## Requirements' of enforced spec files, and bullet gists
+             (slug optional) from ideas/ and changes/
 """
 import json
 import re
@@ -32,7 +35,7 @@ RS, FS = "\x1e", "\x1f"
 STALLED_DAYS = 7
 TOP_FREE = 5
 
-VIEW_FILES = {"plan": "plan.md", "history": "history.md", "coverage": "coverage.txt"}
+VIEW_FILES = {"plan": "plan.md", "history": "history.md", "coverage": "coverage.txt", "reqs": "reqs.md"}
 
 
 def die(msg):
@@ -226,7 +229,9 @@ def view_plan_text(data):
 def adhoc_events():
     """Fileless contract commits: Behavior: contract without a Change: trailer.
 
-    Newest first, straight from git log. [#render-history-adhoc]
+    Newest first, straight from git log. Carries an excerpt of the body —
+    the first substantive rationale line, ~140 chars — so the listing is a
+    window into the reasoning without git show. [#render-history-adhoc]
     """
     log = run(["git", "log", "--date=short", f"--format={RS}%H{FS}%ad{FS}%B"])
     out = []
@@ -242,8 +247,18 @@ def adhoc_events():
             continue
         if re.search(r"^Change:\s*\S+\s*$", body, re.M):
             continue
-        subject = body.strip().split("\n", 1)[0]
-        out.append({"date": d, "hash": h[:8], "subject": subject})
+        lines = body.strip().splitlines()
+        subject = lines[0] if lines else ""
+        excerpt = ""
+        for line in lines[1:]:
+            line = line.strip()
+            if not line or re.match(r"^[A-Z][A-Za-z0-9-]*:\s", line):
+                continue
+            excerpt = line
+            break
+        if len(excerpt) > 140:
+            excerpt = excerpt[:139] + "…"
+        out.append({"date": d, "hash": h[:8], "subject": subject, "excerpt": excerpt})
     return out
 
 
@@ -300,6 +315,8 @@ def view_history_text(data):
         lines.append("  (none)")
     for a in data["adhoc"]:
         lines.append(f"  {a['date']} {a['hash']}  {a['subject']}")
+        if a.get("excerpt"):
+            lines.append(f"      {a['excerpt']}")
     return "\n".join(lines)
 
 
@@ -357,8 +374,83 @@ def view_coverage_text(data):
     return "\n".join(lines)
 
 
-VIEW_DATA = {"plan": plan_data, "history": history_data, "coverage": coverage_data}
-VIEW_TEXT = {"plan": view_plan_text, "history": view_history_text, "coverage": view_coverage_text}
+# --- reqs -------------------------------------------------------------------
+
+REQ_SECTION_RE = re.compile(r"^## Requirements\s*$")
+H2_ANY_RE = re.compile(r"^## (?!#)")
+IDEA_REQ_RE = re.compile(r"^[-*]\s+(?:\[#([a-z0-9][a-z0-9-]*)(?: (?:no-test|dump))*\]\s+)?(.*)")
+BULLET_LINE_RE = re.compile(r"^[-*]\s+")
+
+
+def req_rows(path):
+    """Bullets of the '## Requirements' section: slug (optional) + first-line gist.
+
+    The gist is the bullet's first physical line; a '…' marks a hard-wrapped
+    legacy bullet whose first line is not a self-contained gist yet.
+    """
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    rows, in_req = [], False
+    for i, line in enumerate(lines):
+        if REQ_SECTION_RE.match(line):
+            in_req = True
+            continue
+        if in_req and H2_ANY_RE.match(line):
+            break
+        if in_req:
+            m = IDEA_REQ_RE.match(line)
+            if m and m.group(2).strip():
+                gist = m.group(2).strip()
+                nxt = lines[i + 1] if i + 1 < len(lines) else ""
+                if nxt.strip() and not BULLET_LINE_RE.match(nxt) and not H2_ANY_RE.match(nxt) and not nxt.startswith("###"):
+                    gist += " …"
+                rows.append({"slug": m.group(1), "gist": gist})
+    return rows
+
+
+def reqs_data():
+    spec_paths = []
+    reg = ROOT / "caped.registry"
+    if reg.exists():
+        for line in reg.read_text(encoding="utf-8").splitlines():
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split("\t")
+            if len(parts) >= 4 and parts[2] == "enforced":
+                spec_paths.append(parts[3])
+    specs, entities_rows = [], []
+    for rel in sorted(set(spec_paths)):
+        for r in req_rows(ROOT / rel):
+            specs.append({**r, "source": rel})
+    for status, d in (("in-work", "changes"), ("idea", "ideas")):
+        dd = ROOT / d
+        if not dd.is_dir():
+            continue
+        for f in sorted(dd.glob("*.md")):
+            for r in req_rows(f):
+                entities_rows.append({**r, "source": f.relative_to(ROOT).as_posix(), "status": status})
+    return {"view": "reqs", "specs": specs, "entities": entities_rows}
+
+
+def view_reqs_text(data):
+    lines = ["== reqs — requirement index (slug + first-line gist) ==", "-- specs (enforced) --"]
+    if not data["specs"]:
+        lines.append("  (none)")
+    for r in data["specs"]:
+        lines.append(f"  [#{r['slug']}] {r['gist']}  ({r['source']})")
+    lines.append("-- ideas / changes --")
+    if not data["entities"]:
+        lines.append("  (none)")
+    for r in data["entities"]:
+        slug = f"[#{r['slug']}] " if r["slug"] else ""
+        lines.append(f"  {slug}{r['gist']}  ({r['source']})")
+    return "\n".join(lines)
+
+
+VIEW_DATA = {"plan": plan_data, "history": history_data, "coverage": coverage_data, "reqs": reqs_data}
+VIEW_TEXT = {"plan": view_plan_text, "history": view_history_text, "coverage": view_coverage_text, "reqs": view_reqs_text}
 
 GENERATED_HEADER = "<!-- generated by `caped render --write` — do not edit, regenerate instead -->\n\n"
 

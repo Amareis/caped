@@ -174,7 +174,12 @@ DISCIPLINE
     marker inside the section — or a marker bullet outside it — is a caped
     check error. The bullet stays self-sufficient (statement + rationale,
     not a bare slug); ### subgroups and intro prose inside the section are
-    allowed. Form is checked, never the phrasing. A test covering a
+    allowed. The bullet's FIRST LINE is a self-contained gist: the reqs
+    index renders exactly it. In ideas/changes the same section holds
+    bullets only (numbered lists are a caped check error), the slug is
+    optional (idea requirements are ephemeral) but leads the bullet when
+    present; norm references from prose use {#slug}, backticked mentions
+    are not markers. A test covering a
     requirement repeats the marker in its name or a comment [#trace-refs];
     references between requirements INSIDE a spec use {#slug} (braces) —
     neither a definition nor a covering quote [#trace-defs]. Marker
@@ -208,7 +213,8 @@ COMMANDS
                           refs are the same markers in all tracked files
                           except spec files; fails on uncovered, dangling
                           or duplicated slugs ('[#<slug> no-test]' exempts)
-  caped.sh render [view]— derived views (plan, history, coverage) printed to
+  caped.sh render [view]— derived views (plan, history, coverage, reqs)
+                          printed to
                           stdout — read-only by default [#render-stdout]; --json
                           prints the machine-readable form of a view (same
                           generator as the text) [#render-json]. --write
@@ -219,8 +225,11 @@ COMMANDS
                           trailers [#render-history], reads the live status of
                           unarchived entities from the filesystem ('?' on drift)
                           and also lists fileless adhoc contract commits
-                          (Behavior: contract without Change:)
-                          [#render-history-adhoc]
+                          (Behavior: contract without Change:) with a ~140-char
+                          body excerpt under each subject
+                          [#render-history-adhoc]; reqs is the requirement
+                          index — slug + first-line gist from enforced specs,
+                          bullet gists from ideas/changes [#render-reqs]
 
 A hook error is an instruction: read it and fix the commit accordingly.
 EOF

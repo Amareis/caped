@@ -21,13 +21,13 @@ spawned_from: null
 
 ## Requirements
 
-1. PR в kudach: `caped.sh init`, реестр со всеми src/features/* как legacy + технические капы (entities,
+- PR в kudach: `caped.sh init`, реестр со всеми src/features/* как legacy + технические капы (entities,
    platform, app, ingress), advisory-режим; AGENTS.md получает стаб-указатель на caped.
-2. Отчёт покрытия как метрика переезда; openspec/ мигрирует: идеи → ideas/, текущие спеки — в README капов
+- Отчёт покрытия как метрика переезда; openspec/ мигрирует: идеи → ideas/, текущие спеки — в README капов
    (по одному, по мере флипа в enforced), changes/ — как есть.
-3. Первая enforced-капа — feed: README капы из openspec-спеки + код, фасадный пилот (приватные сабмодули,
+- Первая enforced-капа — feed: README капы из openspec-спеки + код, фасадный пилот (приватные сабмодули,
    pub use; разбор хелперов categories/formatting по замерам пилота).
-4. Калибровка: 1–2 недели advisory, разбор ложных срабатываний, затем решение о blocking.
+- Калибровка: 1–2 недели advisory, разбор ложных срабатываний, затем решение о blocking.
 
 ## Decisions
 

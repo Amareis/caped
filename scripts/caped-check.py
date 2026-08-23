@@ -11,6 +11,9 @@ Checks (errors, exit 1):
                 inside it every bullet starts with a [#<slug>] marker
                 ('- [#slug[ attrs]] Statement...'); a marker bullet outside
                 the section is a misplaced definition
+  entity-req-form — ideas/changes: inside '## Requirements' only bullets
+                ('- ...'), never numbered lists; a [#<slug>] marker is
+                optional but must lead the bullet when present
 
 Output is English and every error carries its fix — same pattern as the hook.
 No network, stdlib only.
@@ -138,6 +141,30 @@ def check_req_form(spec, rel, errors):
         )
 
 
+def check_entity_req_form(f, rel, errors):
+    """Ideas/changes: Requirements bullets only; an optional marker leads the bullet."""
+    lines = f.read_text(encoding="utf-8").splitlines()
+    in_req = False
+    for i, line in enumerate(lines, 1):
+        h2 = H2_RE.match(line)
+        if h2:
+            in_req = h2.group(1) == REQ_SECTION
+            continue
+        if not in_req:
+            continue
+        if re.match(r"^\s*\d+\.\s", line):
+            errors.append(
+                f"{rel}:{i}: numbered requirement in an idea/change — use bullets "
+                f"('- ...'); requirements here are ephemeral, a slug is optional "
+                f"but must lead the bullet when present"
+            )
+        elif BULLET_RE.match(line) and re.search(r"\[#[a-z0-9][a-z0-9-]*\]", re.sub(r"`[^`]*`", "", line)) and not REQ_DEF_RE.match(line):
+            errors.append(
+                f"{rel}:{i}: a [#<slug>] marker in an idea/change requirement must lead "
+                f"the bullet ('- [#<slug>] ...') or be dropped — mid-text markers break the index"
+            )
+
+
 def main():
     errors = []
     live, born, archived, alias = known_entities()
@@ -176,6 +203,7 @@ def main():
                     f"{rel}: section '{section}' missing — add '## {section}' "
                     f"(a fresh idea may leave Decisions empty, a rejected-alternatives list may be '—')"
                 )
+        check_entity_req_form(f, rel, errors)
 
     for spec in enforced_spec_files():
         check_req_form(spec, spec.relative_to(ROOT), errors)

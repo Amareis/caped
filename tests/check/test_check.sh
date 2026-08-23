@@ -193,6 +193,35 @@ git add -A && git commit -qm nu
 run_check
 expect_error 'spec without the section is an error [#req-form]' "no '## Requirements'"
 
+
+# Idea/change requirements: numbered lists are an error, bullets only. [#req-form]
+new_repo
+valid_file ideas/xi.md
+awk '{print} /^t$/{print ""; print "1. Numbered work item."}' ideas/xi.md > ideas/xi.tmp \
+  && mv ideas/xi.tmp ideas/xi.md
+git add -A && git commit -qm xi
+run_check
+expect_error 'numbered requirement in an idea is an error [#req-form]' 'numbered requirement'
+
+# A slug in an idea bullet is optional but must lead the bullet. [#req-form]
+new_repo
+valid_file ideas/omikron.md
+awk -v mk="$MK" '{print} /^t$/{print ""; print "- Work item mentioning " mk "some-norm] mid-text."}' ideas/omikron.md > ideas/omikron.tmp \
+  && mv ideas/omikron.tmp ideas/omikron.md
+git add -A && git commit -qm omikron
+run_check
+expect_error 'mid-text marker in an idea bullet is an error [#req-form]' 'must lead'
+
+# Slug-first bullets and backticked mentions pass in ideas. [#req-form]
+new_repo
+valid_file ideas/pi.md
+awk -v mk="$MK" '{print} /^t$/{print ""; print "- " mk "opt-slug] Optional slug leads the bullet."; print "- Norms in backticks: `" mk "req-form]` is prose, not a marker."}' ideas/pi.md > ideas/pi.tmp \
+  && mv ideas/pi.tmp ideas/pi.md
+git add -A && git commit -qm pi
+run_check
+if [ "$RC" -eq 0 ]; then ok 'slug-first bullet and backticked mention pass [#req-form]'
+else bad "idea slug-first bullet failed: $OUT"; fi
+
 echo
 echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ]
