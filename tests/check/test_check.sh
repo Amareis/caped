@@ -43,29 +43,29 @@ summary: fixture entity
 spawned_from: $spawned
 ---
 
-## Зачем
+## Why
 
 z
 
-## Контекст
+## Context
 
 k
 
-## Требования
+## Requirements
 
 t
 
-## Решения
+## Decisions
 
-## Рассмотрено и отклонено
+## Rejected alternatives
 
 —
 
-## Променанс
+## Provenance
 
 p
 
-## Открытые вопросы
+## Open questions
 
 o
 EOF
@@ -110,10 +110,10 @@ expect_error 'name/file mismatch is an error [#check-structure]' '!= file name'
 # A missing required section. [#check-structure]
 new_repo
 valid_file ideas/epsilon.md
-awk '!/^## Променанс$/' ideas/epsilon.md > ideas/epsilon.tmp && mv ideas/epsilon.tmp ideas/epsilon.md
+awk '!/^## Provenance$/' ideas/epsilon.md > ideas/epsilon.tmp && mv ideas/epsilon.tmp ideas/epsilon.md
 git add -A && git commit -qm epsilon
 run_check
-expect_error 'missing section is an error [#check-structure]' 'Променанс'
+expect_error 'missing section is an error [#check-structure]' 'Provenance'
 
 # spawned_from pointing nowhere. [#check-spawned-from]
 new_repo

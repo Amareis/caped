@@ -113,8 +113,8 @@ def setup_in_work_change(repo):
     idea.parent.mkdir(exist_ok=True)
     idea.write_text(
         "---\nname: alpha\nsummary: tighten hook policy\nspawned_from: null\n---\n\n"
-        "## Зачем\n\nz\n\n## Контекст\n\nk\n\n## Требования\n\nt\n\n## Решения\n\n"
-        "## Рассмотрено и отклонено\n\n—\n\n## Променанс\n\np\n\n## Открытые вопросы\n\no\n",
+        "## Why\n\nz\n\n## Context\n\nk\n\n## Requirements\n\nt\n\n## Decisions\n\n"
+        "## Rejected alternatives\n\n—\n\n## Provenance\n\np\n\n## Open questions\n\no\n",
         encoding="utf-8",
     )
     subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
@@ -137,8 +137,8 @@ def setup_badly_named_idea(repo):
     idea.parent.mkdir(exist_ok=True)
     idea.write_text(
         "---\nname: x\nsummary: pre-push hook support\nspawned_from: null\n---\n\n"
-        "## Зачем\n\nz\n\n## Контекст\n\nk\n\n## Требования\n\nt\n\n## Решения\n\n"
-        "## Рассмотрено и отклонено\n\n—\n\n## Променанс\n\np\n\n## Открытые вопросы\n\no\n",
+        "## Why\n\nz\n\n## Context\n\nk\n\n## Requirements\n\nt\n\n## Decisions\n\n"
+        "## Rejected alternatives\n\n—\n\n## Provenance\n\np\n\n## Open questions\n\no\n",
         encoding="utf-8",
     )
     subprocess.run(["git", "add", "-A"], cwd=repo, check=True)

@@ -3,8 +3,8 @@
 
 Checks (errors, exit 1):
   frontmatter — present, `name` and `summary` set, `name` == file stem
-  sections    — Зачем / Контекст / Требования / Решения / Рассмотрено и
-                отклонено / Променанс / Открытые вопросы all present
+  sections    — Why / Context / Requirements / Decisions / Rejected
+                alternatives / Provenance / Open questions all present
   spawned_from — if set, resolves to a live (ideas//changes/) or archived
                 (Archives: trailer in git history) entity, renames stitched
 
@@ -24,13 +24,13 @@ RS, FS = "\x1e", "\x1f"
 
 REQUIRED_FRONTMATTER = ("name", "summary")
 REQUIRED_SECTIONS = (
-    "Зачем",
-    "Контекст",
-    "Требования",
-    "Решения",
-    "Рассмотрено и отклонено",
-    "Променанс",
-    "Открытые вопросы",
+    "Why",
+    "Context",
+    "Requirements",
+    "Decisions",
+    "Rejected alternatives",
+    "Provenance",
+    "Open questions",
 )
 EMPTY_SPAWNED = {"", "-", "null", "none", "~"}
 
@@ -140,7 +140,7 @@ def main():
             if not re.search(rf"^## {re.escape(section)}\s*$", text, re.M):
                 errors.append(
                     f"{rel}: section '{section}' missing — add '## {section}' "
-                    f"(a fresh idea may leave Решения empty, a rejected-alternatives list may be '—')"
+                    f"(a fresh idea may leave Decisions empty, a rejected-alternatives list may be '—')"
                 )
 
     for spec in enforced_spec_files():

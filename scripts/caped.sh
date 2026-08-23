@@ -75,7 +75,7 @@ SPAWNING IDEAS [#idea-autonomy] (the agent decides WHERE a decision lives — do
 
   The human decides WHAT; placing the decision correctly is your job:
   - Same contract territory as the current change → extend the change itself:
-    same Change: trailer, the decision appended to its "Решения"/"Променанс".
+    same Change: trailer, the decision appended to its "Decisions"/"Provenance".
   - New decision territory, open questions, a disputed call, >2 commits or
     several caps → a new idea file. Born inside a change → spawned_from plus
     a commit with Change: <parent> + Idea: <child>.
@@ -84,7 +84,7 @@ SPAWNING IDEAS [#idea-autonomy] (the agent decides WHERE a decision lives — do
   - Small, already-discussed, 1–2-commit decision → no file at all (ADHOC).
   - Naming: ideas are verbs (work to do), caps are nouns (a decision
     territory); an idea becomes a cap when a standing territory appears.
-  - Every idea carries a "Рассмотрено и отклонено" list — rejected
+  - Every idea carries a "Rejected alternatives" list — rejected
     alternatives with grounds, so the same circle is never walked twice.
 
 DISCIPLINE
@@ -92,15 +92,15 @@ DISCIPLINE
   - One semantic event = one commit. Never mix mv/archival with UNRELATED
     edits; the archive commit's own content is the spec deltas it applies.
   - Chat is ephemeral, provenance is not: everything that influenced a decision
-    lands in the file's "Променанс" section in the same commit (human quote /
+    lands in the file's "Provenance" section in the same commit (human quote /
     agent deduction with its reasoning).
   - Frontmatter: name, summary, phase, priority, depends_on, spawned_from
     (phase/priority are advisory free-form fields in v0).
-  - Idea and change share ONE section set: "Зачем" / "Контекст" /
-    "Требования" / "Решения" / "Рассмотрено и отклонено" / "Променанс" /
-    "Открытые вопросы" (a fresh idea may leave "Решения" empty). Section
+  - Idea and change share ONE section set: "Why" / "Context" /
+    "Requirements" / "Decisions" / "Rejected alternatives" / "Provenance" /
+    "Open questions" (a fresh idea may leave "Decisions" empty). Section
     names are fixed format strings — use them verbatim, never translated.
-    A change may append extra sections at the bottom — typically "Задачи",
+    A change may append extra sections at the bottom — typically "Tasks",
     a stage checklist for big tasks.
   - Findings born inside a change: same contract/artifact → extend the SAME
     change (same Change: trailer, decisions appended to its file); a new
