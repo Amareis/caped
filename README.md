@@ -269,6 +269,9 @@ write-only слоем и дрейфует. Критерий границы v0 (�
   документ (из родителя Archives-коммита); таймлайн событий (рождение/взятие/архив) и все коммиты с
   трейлером `Idea:`/`Change:`/`Archives:`/`Adhoc:`; адхок-кластер собирает виртуальный документ из тел;
   неизвестное имя — ошибка exit 2 с ближайшими кандидатами.
+- [#lifecycle-cmds dump] Обёртки лайфцикла: `caped idea <name> [summary]` (скелет идеи + `Idea:`),
+  `caped work <name>` (чистый mv в changes + `Change:`), `caped archive <name>` — автодепозит отложенных
+  OQ в `ideas/_backlog.md`, собственный гейт (полный прогон; красный = отказ архива), `git rm` + `Change:`/`Archives:`.
 - [#registry-mutation no-test dump] Мутации реестра: рождение/сплит/мерж капов — contract-коммит, трогающий
   `caped.registry`.
 - [#behavior-trailer dump] Класс изменения: коммит, трогающий enforced-капу, несёт `Behavior:

@@ -260,6 +260,11 @@ COMMANDS
                           event timeline and every commit with the entity's
                           Idea:/Change:/Archives:/Adhoc: trailer; unknown names
                           fail exit 2 with the closest candidates [#change-show]
+  caped idea           — ideas/<name>.md skeleton + commit with Idea: <name>
+  caped work           — clean git mv ideas/ -> changes/ + commit Change: <name>
+  caped archive        — deposit deferred open questions into ideas/_backlog.md,
+                          run the full gate (refuses on red), git rm + commit
+                          Change:/Archives: [#lifecycle-cmds]
   caped render [view] — derived views (plan, history, coverage, reqs)
                           printed to
                           stdout — read-only by default [#render-stdout]; --json
@@ -318,6 +323,10 @@ case "$cmd" in
     fi
     if [ -f "$bundle" ]; then head -1 "$bundle"; else miss; fi
     exit 0
+    ;;
+  idea|work|archive)
+    shift
+    exec "$DIR/caped-lifecycle.sh" "$cmd" "$@"
     ;;
   change)
     shift
