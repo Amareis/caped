@@ -364,6 +364,64 @@ case "$OUT" in
   *) ok 'excerpt is the first substantive line only [#render-history-adhoc]' ;;
 esac
 
+# --- adhoc grouping: Adhoc: <name> clusters the commits; renames excluded -----
+new_repo
+echo a >> README.md; git add -A
+commit_msg <<'FIX'
+адхок первый
+
+тело: ратионале первого решения.
+
+Adhoc: fix-src
+Behavior: contract
+Spec: README.md
+FIX
+echo b >> README.md; git add -A
+commit_msg <<'FIX'
+адхок второй
+
+тело: ратионале второго решения.
+
+Adhoc: fix-src
+Behavior: contract
+Spec: README.md
+FIX
+mkdir -p ideas
+printf -- '---\nname: r\nsummary: rename fixture\n---\n' > ideas/r.md
+git add ideas/r.md
+commit_msg <<'FIX'
+идея r (setup для ренейма)
+
+Idea: r
+FIX
+git mv ideas/r.md ideas/renamed.md
+commit_msg <<'FIX'
+ренейм события, не адхок
+
+тело: рефереры правлены.
+
+Behavior: contract
+Spec: README.md
+FIX
+expect_out 'history grouping succeeds [#adhoc-id]' history
+case "$OUT" in
+  *"Adhoc: fix-src (2 commits)"*) ok 'same Adhoc name is one cluster [#adhoc-id]' ;;
+  *) bad "cluster header missing: $OUT" ;;
+esac
+case "$OUT" in
+  *"ренейм события, не адхок"*) bad "rename event leaked into adhoc: $OUT" ;;
+  *) ok 'idea-rename event excluded from adhoc decisions [#adhoc-id]' ;;
+esac
+case "$OUT" in
+  *"1 id(s)"*"0 cluster(s) over 2"*) ok 'cluster metric in the header [#adhoc-id]' ;;
+  *) bad "metric missing: $OUT" ;;
+esac
+expect_out 'plan shows recent fileless decisions [#adhoc-id]' plan
+case "$OUT" in
+  *"-- recent fileless decisions --"*"адхок второй"*"Spec: README.md"*) ok 'plan survey lists recent adhocs with their Spec [#adhoc-id]' ;;
+  *) bad "recent adhoc section missing: $OUT" ;;
+esac
+
 # --- --write materialises the reqs view too ----------------------------------
 expect_out '--write with reqs succeeds [#render-write]' --write
 missing=""

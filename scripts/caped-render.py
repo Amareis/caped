@@ -211,7 +211,15 @@ def plan_data():
     prio_rank = {"high": 0, "medium": 1, "mid": 1, "low": 2}
     ideas.sort(key=lambda r: (r["phase"] or "—", prio_rank.get(r["priority"], 3), r["name"]))
     in_work.sort(key=lambda r: r["name"])
-    return {"view": "plan", "in_work": in_work, "ideas": ideas}
+    recent = []
+    for cl in adhoc_events()["clusters"]:
+        for a in cl["commits"]:
+            if len(recent) >= 5:
+                break
+            recent.append({"date": a["date"], "hash": a["hash"], "subject": a["subject"], "spec": a["spec"]})
+        if len(recent) >= 5:
+            break
+    return {"view": "plan", "in_work": in_work, "ideas": ideas, "recent_adhoc": recent}
 
 
 def plan_row_lines(r):
@@ -247,6 +255,11 @@ def view_plan_text(data):
         lines.append("  (none)")
     for r in data["ideas"]:
         lines.extend(plan_row_lines(r))
+    if data.get("recent_adhoc"):
+        lines.append(dim("-- recent fileless decisions --"))
+        for a in data["recent_adhoc"]:
+            spec = f" (Spec: {a['spec']})" if a["spec"] else ""
+            lines.append(f"  {dim(a['date'] + ' ' + a['hash'])}  {a['subject']}{dim(spec)}")
     return "\n".join(lines)
 
 
@@ -256,12 +269,34 @@ def view_plan_text(data):
 def adhoc_events():
     """Fileless contract commits: Behavior: contract without a Change: trailer.
 
-    Newest first, straight from git log. Carries an excerpt of the body —
-    the first substantive rationale line, ~140 chars — so the listing is a
-    window into the reasoning without git show. [#render-history-adhoc]
+    Newest first, grouped by the `Adhoc: <name>` trailer — commits sharing a
+    name form ONE fileless change; pre-naming fileless contracts fall under
+    "(unnamed)". Idea-rename events (R ideas/A.md -> ideas/B.md in the diff)
+    are excluded — they are events, not adhoc decisions. Each commit carries
+    an excerpt of its body (first substantive rationale line) and its Spec:.
+    [#render-history-adhoc] [#adhoc-id]
     """
     log = run(["git", "log", "--date=short", f"--format={RS}%H{FS}%ad{FS}%B"])
-    out = []
+
+    def entry(h, d, body):
+        lines = body.strip().splitlines()
+        subject = lines[0] if lines else ""
+        excerpt = ""
+        for line in lines[1:]:
+            line = line.strip()
+            if not line or re.match(r"^[A-Z][A-Za-z0-9-]*:\s", line):
+                continue
+            excerpt = line
+            break
+        if len(excerpt) > 140:
+            excerpt = excerpt[:139] + "…"
+        spec = ""
+        m = re.search(r"^Spec:\s*(\S+)\s*$", body, re.M)
+        if m:
+            spec = m.group(1)
+        return {"date": d, "hash": h[:8], "subject": subject, "excerpt": excerpt, "spec": spec}
+
+    clusters = {}
     for rec in log.split(RS):
         rec = rec.strip("\n")
         if not rec:
@@ -274,19 +309,15 @@ def adhoc_events():
             continue
         if re.search(r"^Change:\s*\S+\s*$", body, re.M):
             continue
-        lines = body.strip().splitlines()
-        subject = lines[0] if lines else ""
-        excerpt = ""
-        for line in lines[1:]:
-            line = line.strip()
-            if not line or re.match(r"^[A-Z][A-Za-z0-9-]*:\s", line):
-                continue
-            excerpt = line
-            break
-        if len(excerpt) > 140:
-            excerpt = excerpt[:139] + "…"
-        out.append({"date": d, "hash": h[:8], "subject": subject, "excerpt": excerpt})
-    return out
+        names = run(["git", "show", "--name-status", "-M", "--format=", h], check=False)
+        if re.search(r"^R\d*\tideas/[^\t]+\.md\tideas/[^\t]+\.md$", names, re.M):
+            continue  # idea rename event — not an adhoc decision
+        m = re.search(r"^Adhoc:\s*(\S+)\s*$", body, re.M)
+        name = m.group(1) if m else "(unnamed)"
+        clusters.setdefault(name, []).append(entry(h, d, body))
+    ids = len(clusters)
+    over2 = sum(1 for c in clusters.values() if len(c) > 2)
+    return {"ids": ids, "over2": over2, "clusters": [{"name": n, "commits": c} for n, c in clusters.items()]}
 
 
 def history_data():
@@ -337,13 +368,16 @@ def view_history_text(data):
             acell = f"- {r['status']}"  # idea / in work / ? (drift, visible by design)
         old = f" (was: {r['was']})" if r["was"] else ""
         lines.append(f"  {bold(r['name'])}{' ' * max(1, 22 - len(r['name']))} {dim(bcell):<19} {dim(acell):<19} {r['summary']}{old}")
-    lines.append(dim("-- adhoc decisions (fileless contract commits) --"))
-    if not data["adhoc"]:
+    lines.append(dim(f"-- adhoc decisions (fileless contract commits; {data['adhoc']['ids']} id(s), {data['adhoc']['over2']} cluster(s) over 2) --"))
+    if not data["adhoc"]["clusters"]:
         lines.append("  (none)")
-    for a in data["adhoc"]:
-        lines.append(f"  {dim(a['date'] + ' ' + a['hash'])}  {bold(a['subject'])}")
-        if a.get("excerpt"):
-            lines.append(dim(f"      {a['excerpt']}"))
+    for cl in data["adhoc"]["clusters"]:
+        cnt = len(cl["commits"])
+        lines.append(f"  Adhoc: {bold(cl['name'])} ({cnt} commit{'s' if cnt != 1 else ''})")
+        for a in cl["commits"]:
+            lines.append(f"    {dim(a['date'] + ' ' + a['hash'])}  {bold(a['subject'])}")
+            if a.get("excerpt"):
+                lines.append(dim(f"        {a['excerpt']}"))
     return "\n".join(lines)
 
 
