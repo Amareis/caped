@@ -1,7 +1,7 @@
 ---
 name: test-index
 summary: Индекс тестов как derived view — сценарии с маркерами требований и doc-комментариями из tests/, чтобы README капы ссылались на живой индекс, а покрытие trace читалось человеком без лазанья в сами тесты
-phase: v0
+phase: v0.1
 priority: low
 depends_on: [render-format]
 ---

@@ -1,7 +1,7 @@
 ---
 name: feature-history
 summary: caped render feature <cap> — история капабилити: коммиты по её путям (prefix реестра) с фильтром по трейлерам и ссылками на чейнджи; README капы получают машинную «историю фичи» вместо ручных ссылок на архив
-phase: v0
+phase: v0.1
 priority: low
 depends_on: [render-format]
 ---

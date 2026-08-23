@@ -1,7 +1,7 @@
 ---
 name: git-text-metrics
 summary: Метрика «текст в гите» — объём ратионале в коммит-месседжах (особенно адхок, живущий ТОЛЬКО там) рядом с объёмом кода/спек; view в render
-phase: v0
+phase: v0.1
 priority: low
 depends_on: []
 ---
