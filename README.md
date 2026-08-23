@@ -252,6 +252,11 @@ write-only слоем и дрейфует. Критерий границы v0 (�
   обязаны быть отвечены, промоутированы («промоут → X» в променансе) или осесть депозитом в
   `ideas/_backlog.md` (строка с именем чейнджа в том же коммите) — иначе хук отклоняет архивацию;
   команда-удобство `caped archive` — фаза 2.
+- [#event-feed dump] Событийная лента: тул пишет факты жизненного цикла (idea born / taken into work /
+  archived / adhoc / contract) в `.caped/events/feed.jsonl` (append-only, одна строка = один write(2)),
+  `caped events --since <n>` читает по курсору; реакции — версионированные `.caped/hooks/<event>`
+  (политика репо, как git hooks; запуск с env CAPED_EVENT/CAPED_ENTITY/CAPED_COMMIT). Нотификация ≠
+  энфорсмент: события — факты ПОСЛЕ (post-commit), хук-гейты — ДО.
 - [#registry-mutation no-test dump] Мутации реестра: рождение/сплит/мерж капов — contract-коммит, трогающий
   `caped.registry`.
 - [#behavior-trailer dump] Класс изменения: коммит, трогающий enforced-капу, несёт `Behavior:

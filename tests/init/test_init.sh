@@ -56,6 +56,12 @@ else
   bad 'AGENTS.md seeded pointing at the wrapper [#linked-install]'
 fi
 
+if [ -x .git/hooks/post-commit ]; then
+  ok 'post-commit shim installed for the event feed [#linked-install]'
+else
+  bad 'post-commit shim missing for the event feed [#linked-install]'
+fi
+
 # --- the linked hook chain really enforces -----------------------------------
 
 echo '# fixture spec' > README.md

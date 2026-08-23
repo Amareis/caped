@@ -238,6 +238,12 @@ COMMANDS
                           refs are the same markers in all tracked files
                           except spec files; fails on uncovered, dangling
                           or duplicated slugs ('[#<slug> no-test]' exempts)
+  caped events         — lifecycle event feed by cursor: .caped/events/feed.jsonl
+                          (append-only, one line per fact), --since <lines-consumed>;
+                          the post-commit shim emits idea-born / taken-into-work /
+                          archived / adhoc / contract and dispatches versioned
+                          .caped/hooks/<event> scripts (repo policy, like git hooks)
+                          [#event-feed]
   caped render [view] — derived views (plan, history, coverage, reqs)
                           printed to
                           stdout — read-only by default [#render-stdout]; --json

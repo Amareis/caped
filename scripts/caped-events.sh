@@ -18,8 +18,9 @@ ROOT="$(git rev-parse --show-toplevel)"
 FEED_DIR="$ROOT/.caped/events"
 FEED="$FEED_DIR/feed.jsonl"
 
-emit() { # <event> <entity> — append one jsonl line, then dispatch
-  local ev="$1" ent="$2"
+emit() { # <event> [entity] — append one jsonl line, then dispatch
+  local ev="$1" ent=""
+  [ "$#" -ge 2 ] && ent="$2"
   mkdir -p "$FEED_DIR" 2>/dev/null || true
   printf '{"t":"%s","e":"%s","c":"%s","at":"%s"}\n' \
     "$ev" "$ent" "$(git rev-parse --short HEAD 2>/dev/null || echo -)" \
@@ -56,11 +57,10 @@ post_commit() { # called by the post-commit shim; reads HEAD, emits the dominant
 
 events_cmd() { # caped events [--since <n>] — lines after the cursor, no partial tail
   local since=0 total
-  case "$1" in
-    --since) since="$2" ;;
-    "") ;;
-    *) echo "caped events: usage: caped events [--since <lines-consumed>]" >&2; exit 2 ;;
-  esac
+  if [ "$#" -ge 1 ] && [ "$1" != "--since" ]; then
+    echo "caped events: usage: caped events [--since <lines-consumed>]" >&2; exit 2
+  fi
+  [ "$#" -ge 2 ] && since="$2"
   [ -f "$FEED" ] || { echo "caped events: no feed yet — nothing has happened since init"; exit 0; }
   total="$(wc -l < "$FEED")"
   if [ "$since" -lt "$total" ]; then
@@ -68,8 +68,13 @@ events_cmd() { # caped events [--since <n>] — lines after the cursor, no parti
   fi
 }
 
-case "$1" in
-  post-commit) post_commit ;;
-  emit) shift; emit "$1" "$2" ;;
-  *) events_cmd "$@" ;;
+case "$#" in
+  0) events_cmd ;;
+  *)
+    case "$1" in
+      post-commit) post_commit ;;
+      emit) shift; emit "$1" "$2" ;;
+      *) events_cmd "$@" ;;
+    esac
+    ;;
 esac
