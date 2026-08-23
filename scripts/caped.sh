@@ -197,7 +197,12 @@ COMMANDS
 
   caped.sh              — this reference [#rules-in-cli]
   caped.sh init         — wire up a repo (hook shims, registry, ideas/ +
-                          changes/). Idempotent [#init-idempotent]: safe to re-run,
+                          changes/, an AGENTS.md pointer if missing).
+                          Linked mode [#linked-install]: the repo vendors NO
+                          tool scripts — the shim points at the installed
+                          tool's absolute path, upgrades apply immediately,
+                          re-running init repairs the shim after the tool
+                          moves. Idempotent [#init-idempotent]: safe to re-run,
                           it only repairs missing pieces and refreshes the report.
   caped.sh check        — structural validation of ideas/ and changes/ [#check-structure]
                           (frontmatter,

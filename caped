@@ -1,0 +1,4 @@
+#!/bin/sh
+# caped — PATH-обёртка над диспетчером. Положи каталог тула в PATH
+# (или сделай symlink в ~/bin) и вызывай `caped <cmd>` из любой adopting-репы.
+exec "$(cd "$(dirname "$0")" && pwd)/scripts/caped.sh" "$@"

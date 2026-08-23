@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# tests/init/test_init.sh — linked-mode install: the adopting repo vendors
+# no scripts, the shim points at the installed tool [#linked-install].
+#
+# Builds a throwaway repo in mktemp, runs the REAL tool's dispatcher from
+# its installed location (never copied into the fixture), and asserts:
+#   - the commit-msg shim references the tool's absolute path;
+#   - the hook chain really enforces (a trailer-less commit is rejected);
+#   - check / trace / render work from the fixture via the tool wrapper;
+#   - trace stays green with no dangling refs — the tool's own markers
+#     cannot leak through a repo that never vendors the scripts;
+#   - AGENTS.md is seeded and points at the wrapper;
+#   - init stays idempotent.
+#
+# Fixture markers are built as ${MK}slug] so the REAL repo's trace does not
+# read them as refs; scenario names carry [#linked-install] as coverage.
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+MK='[#'
+
+pass=0; fail=0
+ok()  { printf 'PASS %s\n' "$1"; pass=$((pass + 1)); }
+bad() { printf 'FAIL %s\n' "$1"; fail=$((fail + 1)); }
+
+cd "$TMP"
+git init -q
+git config user.email test@caped.dev
+git config user.name "caped test"
+
+# --- init from the installed tool, no vendoring -----------------------------
+
+if bash "$REPO_ROOT/scripts/caped.sh" init >/dev/null; then
+  ok 'caped init succeeds without vendored scripts [#linked-install]'
+else
+  bad 'caped init succeeds without vendored scripts [#linked-install] — non-zero exit'
+fi
+
+if [ ! -e scripts/caped.sh ]; then
+  ok 'fixture vendors no dispatcher [#linked-install]'
+else
+  bad 'fixture vendors no dispatcher [#linked-install] — scripts/caped.sh appeared'
+fi
+
+if grep -qF "$REPO_ROOT/scripts/caped.sh" .git/hooks/commit-msg; then
+  ok 'shim points at the installed tool (absolute path) [#linked-install]'
+else
+  bad 'shim points at the installed tool (absolute path) [#linked-install]'
+fi
+
+if grep -qF "$REPO_ROOT/caped" AGENTS.md; then
+  ok 'AGENTS.md seeded pointing at the wrapper [#linked-install]'
+else
+  bad 'AGENTS.md seeded pointing at the wrapper [#linked-install]'
+fi
+
+# --- the linked hook chain really enforces -----------------------------------
+
+echo '# fixture spec' > README.md
+printf '\n## Requirements\n' >> README.md
+git add -A
+git commit -qm 'seed' --no-verify
+
+echo 'v2' >> README.md
+git add README.md
+if git commit -qm 'no trailers' >/dev/null 2>&1; then
+  bad 'linked hook rejects a trailer-less commit on an enforced cap [#linked-install]'
+  git reset -q --soft HEAD~1
+else
+  ok 'linked hook rejects a trailer-less commit on an enforced cap [#linked-install]'
+fi
+
+printf 'internal spec tweak\n\nBehavior: internal\n' > .git/CAPED_MSG
+if git commit -qF .git/CAPED_MSG >/dev/null 2>&1; then
+  ok 'linked hook accepts Behavior: internal [#linked-install]'
+else
+  bad 'linked hook accepts Behavior: internal [#linked-install] — rejected'
+  git reset -q
+fi
+
+# --- the tool's subcommands work from the fixture -----------------------------
+
+for cmd in check trace render; do
+  if "$REPO_ROOT/caped" "$cmd" >/dev/null 2>&1; then
+    ok "caped $cmd works from a linked fixture [#linked-install]"
+  else
+    bad "caped $cmd works from a linked fixture [#linked-install] — non-zero exit"
+  fi
+done
+
+if "$REPO_ROOT/caped" trace 2>&1 | grep -q 'dangling'; then
+  bad 'linked fixture trace has no dangling refs from the tool namespace [#linked-install]'
+else
+  ok 'linked fixture trace has no dangling refs from the tool namespace [#linked-install]'
+fi
+
+# --- idempotence --------------------------------------------------------------
+
+if bash "$REPO_ROOT/scripts/caped.sh" init >/dev/null 2>&1; then
+  ok 're-running linked init repairs and exits 0 [#linked-install]'
+else
+  bad 're-running linked init repairs and exits 0 [#linked-install] — non-zero exit'
+fi
+
+# --- Report ------------------------------------------------------------------
+
+echo
+echo "pass=$pass fail=$fail"
+[ "$fail" -eq 0 ]

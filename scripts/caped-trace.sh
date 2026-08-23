@@ -20,7 +20,7 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
 REG=caped.registry
-[ -f "$REG" ] || { echo "caped trace: no $REG — run scripts/caped.sh init first" >&2; exit 2; }
+[ -f "$REG" ] || { echo "caped trace: no $REG — run caped init first" >&2; exit 2; }
 
 SPECS=()
 while IFS= read -r line; do SPECS+=("$line"); done < <(
@@ -54,7 +54,9 @@ while IFS= read -r f; do
 done < <(git ls-files)
 
 # Refs inside the rules dump specifically — for the undumped class.
-DUMP=scripts/caped.sh
+# Resolved next to this script, not relative to the repo: in linked mode
+# (adopting repo vendors nothing) the dump lives in the installed tool.
+DUMP="$(cd "$(dirname "$0")" && pwd)/caped.sh"
 [ -f "$DUMP" ] && grep -IoE '\[#[a-z0-9][a-z0-9-]*\]' "$DUMP" \
   | sed -E 's/^\[#([a-z0-9-]+)\]$/\1/' >> "$dumprefs" || true
 
