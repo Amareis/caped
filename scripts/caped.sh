@@ -250,8 +250,11 @@ COMMANDS
                           [#tool-version]
   caped version        — the tool's version from its bundled changelog (first
                           line: head of scripts/CHANGELOG.caped.generated.md);
-                          --path prints the bundle path for consumers; a missing
-                          bundle is a valid answer (exit 0) [#tool-version]
+                          --path prints the bundle path for consumers; --changelog
+                          prints the bundle CONTENTS — the TOOL's contract
+                          changelog, repo-agnostic (render changelog renders the
+                          current repo's contracts instead); a missing bundle is
+                          a valid answer (exit 0) [#tool-version]
   caped render [view] — derived views (plan, history, coverage, reqs)
                           printed to
                           stdout — read-only by default [#render-stdout]; --json
@@ -299,13 +302,16 @@ case "$cmd" in
     shift
     bundle="$(env | sed -n 's/^CAPED_BUNDLE_PATH=//p' | head -1)"
     [ -n "$bundle" ] || bundle="$DIR/CHANGELOG.caped.generated.md"
+    miss() { echo "caped version: no bundled changelog yet — regenerate via the tool repo (contract/archived hook) or set CAPED_BUNDLE_PATH" >&2; }
     if [ "$#" -ge 1 ] && [ "$1" = "--path" ]; then
-      if [ -f "$bundle" ]; then echo "$bundle"; else
-        echo "caped version: no bundled changelog yet — regenerate via the tool repo (contract/archived hook) or set CAPED_BUNDLE_PATH" >&2; fi
+      if [ -f "$bundle" ]; then echo "$bundle"; else miss; fi
       exit 0
     fi
-    if [ -f "$bundle" ]; then head -1 "$bundle"; else
-      echo "caped version: no bundled changelog yet — regenerate via the tool repo (contract/archived hook) or set CAPED_BUNDLE_PATH" >&2; fi
+    if [ "$#" -ge 1 ] && [ "$1" = "--changelog" ]; then
+      if [ -f "$bundle" ]; then cat "$bundle"; else miss; fi
+      exit 0
+    fi
+    if [ -f "$bundle" ]; then head -1 "$bundle"; else miss; fi
     exit 0
     ;;
   check)

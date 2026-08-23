@@ -135,6 +135,12 @@ else
   bad "no-bundle answer wrong: $OUT"
 fi
 
+# --- caped version --changelog: the bundle contents -------------------------
+OUT="$(bash "$CAPED" version --changelog)"
+EXP="$(cat "$TMP/bundle.md")"
+if [ "$OUT" = "$EXP" ]; then ok 'version --changelog prints the bundle contents [#tool-version]'
+else bad "changelog wrong: $(printf '%s' "$OUT" | head -1)"; fi
+
 echo
 echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ]
