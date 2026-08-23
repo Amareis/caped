@@ -119,6 +119,22 @@ else
   bad "tool-updated missing: $(tail -1 .caped/events/feed.jsonl 2>/dev/null)"
 fi
 
+# --- caped version: the consumer contract point -----------------------------
+OUT="$(bash "$CAPED" version)"
+case "$OUT" in
+  *'caped changelog: 2 contract change(s)'*) ok 'caped version prints the bundle head [#tool-version]' ;;
+  *) bad "version wrong: $OUT" ;;
+esac
+P="$(bash "$CAPED" version --path)"
+if [ "$P" = "$TMP/bundle.md" ]; then ok 'version --path prints the bundle path [#tool-version]'
+else bad "path wrong: $P"; fi
+OUT="$(CAPED_BUNDLE_PATH="$TMP/none.md" bash "$CAPED" version 2>&1)"
+if [ "$?" -eq 0 ] && printf '%s' "$OUT" | grep -q 'no bundled changelog'; then
+  ok 'version without a bundle answers cleanly [#tool-version]'
+else
+  bad "no-bundle answer wrong: $OUT"
+fi
+
 echo
 echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ]

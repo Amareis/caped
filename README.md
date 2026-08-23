@@ -261,7 +261,8 @@ write-only слоем и дрейфует. Критерий границы v0 (�
   первая строка «caped changelog: N contract change(s) · head <hash> · <дата>»): сверка с
   `.caped/state/tool-version` на запуске, смена → событие `tool-updated` в ленту; бандл
   регенерится автогеном по событию `contract`/`archived` (`.caped/hooks` в tool-репо);
-  бинарь вшивает при сборке.
+  бинарь вшивает при сборке. Команда `caped version` печатает версию-строку / `--path` —
+  контрактная точка для консьюмера (плагин не знает путь к бандлу сам).
 - [#registry-mutation no-test dump] Мутации реестра: рождение/сплит/мерж капов — contract-коммит, трогающий
   `caped.registry`.
 - [#behavior-trailer dump] Класс изменения: коммит, трогающий enforced-капу, несёт `Behavior:
