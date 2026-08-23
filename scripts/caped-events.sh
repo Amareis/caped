@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# caped events — lifecycle event feed + .caped/hooks dispatch.
+#
+# The feed is append-only jsonl at .caped/events/feed.jsonl. Each event is one
+# line written with a single write(2) ('printf %s\n >>' is O_APPEND; atomic for
+# lines < PIPE_BUF). The consumer cursor is the count of already-consumed
+# lines; a partial trailing line is never produced by << but is skipped on read.
+#
+# Event types (v0): idea-born, taken-into-work, archived, adhoc, contract.
+# (tool-updated arrives with the version-stamp check later.)
+#
+# Dispatch: for each event, if .caped/hooks/<event> exists and is executable it
+# runs with CAPED_EVENT, CAPED_ENTITY, CAPED_COMMIT, CAPED_ROOT in the env.
+# .caped/hooks/ is VERSIONED — hooks are the repo's own policy (like git hooks).
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+FEED_DIR="$ROOT/.caped/events"
+FEED="$FEED_DIR/feed.jsonl"
+
+emit() { # <event> <entity> — append one jsonl line, then dispatch
+  local ev="$1" ent="$2"
+  mkdir -p "$FEED_DIR" 2>/dev/null || true
+  printf '{"t":"%s","e":"%s","c":"%s","at":"%s"}\n' \
+    "$ev" "$ent" "$(git rev-parse --short HEAD 2>/dev/null || echo -)" \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$FEED" 2>/dev/null || true
+  dispatch "$ev" "$ent"
+}
+
+dispatch() { # <event> <entity>
+  local ev="$1" ent="$2" hook
+  hook="$ROOT/.caped/hooks/$ev"
+  [ -x "$hook" ] || return 0
+  CAPED_EVENT="$ev" CAPED_ENTITY="$ent" CAPED_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || true)" \
+    CAPED_ROOT="$ROOT" "$hook" || true
+}
+
+post_commit() { # called by the post-commit shim; reads HEAD, emits the dominant event
+  local h body ent
+  h="$(git rev-parse HEAD)"
+  body="$(git log -1 --format='%B' "$h")"
+  ent="$(printf '%s\n' "$body" | sed -n 's/^Archives: \([^ ]*\)/\1/p' | head -1)"
+  if [ -n "$ent" ] && git show --name-status --format= "$h" | grep -q "^D\tchanges/$ent.md$"; then
+    emit archived "$ent"; return 0; fi
+  ent="$(printf '%s\n' "$body" | sed -n 's/^Idea: \([^ ]*\)/\1/p' | head -1)"
+  if [ -n "$ent" ] && git show --name-status --format= "$h" | grep -q "^A\tideas/$ent.md$"; then
+    emit idea-born "$ent"; return 0; fi
+  ent="$(printf '%s\n' "$body" | sed -n 's/^Change: \([^ ]*\)/\1/p' | head -1)"
+  if [ -n "$ent" ] && git show --name-status --format= -M "$h" | grep -q "^R[0-9]*\tideas/$ent.md\tchanges/$ent.md$"; then
+    emit taken-into-work "$ent"; return 0; fi
+  if printf '%s\n' "$body" | grep -q '^Behavior: contract' && ! printf '%s\n' "$body" | grep -q '^Change: '; then
+    emit adhoc; return 0; fi
+  if printf '%s\n' "$body" | grep -q '^Behavior: contract'; then
+    emit contract; return 0; fi
+}
+
+events_cmd() { # caped events [--since <n>] — lines after the cursor, no partial tail
+  local since=0 total
+  case "$1" in
+    --since) since="$2" ;;
+    "") ;;
+    *) echo "caped events: usage: caped events [--since <lines-consumed>]" >&2; exit 2 ;;
+  esac
+  [ -f "$FEED" ] || { echo "caped events: no feed yet — nothing has happened since init"; exit 0; }
+  total="$(wc -l < "$FEED")"
+  if [ "$since" -lt "$total" ]; then
+    sed -n "$((since + 1)),\$p" "$FEED" | head -n "$((total - since))"
+  fi
+}
+
+case "$1" in
+  post-commit) post_commit ;;
+  emit) shift; emit "$1" "$2" ;;
+  *) events_cmd "$@" ;;
+esac

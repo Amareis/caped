@@ -45,12 +45,27 @@ else
 fi
 chmod +x "$SHIM"
 
+# --- 1b. post-commit shim (event feed) -----------------------------------
+PCSHIM=.git/hooks/post-commit
+if [ "${TOOL_DIR#"$ROOT"/}" != "$TOOL_DIR" ]; then
+  REL="${TOOL_DIR#"$ROOT"/}"
+  printf '#!/bin/sh\n# caped post-commit shim — lifecycle events to .caped/events/\nexec "$(git rev-parse --show-toplevel)/%s/caped.sh" hook post-commit "$@"\n' \
+    "$REL" > "$PCSHIM"
+  echo "ok: $PCSHIM -> $REL/caped.sh hook post-commit (vendored)"
+else
+  printf '#!/bin/sh\n# caped post-commit shim — lifecycle events to .caped/events/\nexec "%s/caped.sh" hook post-commit "$@"\n' \
+    "$TOOL_DIR" > "$PCSHIM"
+  echo "ok: $PCSHIM -> $TOOL_DIR/caped.sh hook post-commit (linked)"
+fi
+chmod +x "$PCSHIM"
+
 # --- 2. caped.registry ----------------------------------------------------
 if [ ! -f caped.registry ]; then
   {
     printf '# caped registry — name<TAB>path-prefix<TAB>state<TAB>spec-file\n'
     printf '# state: enforced | declared | legacy\n'
     printf 'root\tREADME.md\tenforced\tREADME.md\n'
+    printf 'hooks\t.caped/hooks/\tenforced\tREADME.md\n'
     # auto-discovery: typical feature-sliced layout — existing features as legacy
     if [ -d src/features ]; then
       for d in src/features/*/; do
@@ -67,15 +82,15 @@ fi
 
 # --- 3. .gitignore --------------------------------------------------------
 touch .gitignore
-if grep -qx '.caped/' .gitignore; then
-  echo "ok: .caped/ already in .gitignore"
+if grep -qxF '.caped/*' .gitignore; then
+  echo "ok: .caped/* already in .gitignore (hooks versioned)"
 else
-  printf '\n# caped derived views — generated on the fly, never committed\n.caped/\n' >> .gitignore
-  echo "ok: .caped/ added to .gitignore"
+  printf '\n# caped derived views/machine state — never committed; .caped/hooks/ is repo policy and IS versioned\n.caped/*\n!.caped/hooks/\n!.caped/hooks/*\n' >> .gitignore
+  echo "ok: .caped/* ignored, .caped/hooks/ kept versioned"
 fi
 
 # --- 4. ideas/ + changes/ -------------------------------------------------
-mkdir -p ideas changes .caped
+mkdir -p ideas changes .caped .caped/hooks .caped/events
 for d in ideas changes; do
   [ -e "$d/.gitkeep" ] || { : > "$d/.gitkeep"; echo "ok: $d/.gitkeep"; }
 done

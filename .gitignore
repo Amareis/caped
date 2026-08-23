@@ -1,4 +1,6 @@
-.caped/
+.caped/*
+!.caped/hooks/
+!.caped/hooks/*
 __pycache__/
 .idea
 tests/secretary/last-e2e/
