@@ -371,6 +371,8 @@ def view_history_text(data):
         bcell = f"{r['born']['date']} {r['born']['hash']}" if r["born"] else "-"
         if r["archived"]:
             acell = f"{r['archived']['date']} {r['archived']['hash']}"
+            if r["status"] == "withdrawn":
+                acell += " (withdrawn)"
         else:
             acell = f"- {r['status']}"  # idea / in work / ? (drift, visible by design)
         old = f" (was: {r['was']})" if r["was"] else ""

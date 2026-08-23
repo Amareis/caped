@@ -113,8 +113,8 @@ if [ -n "$CHANGE" ] && [ "$CHANGE" != "init" ] && [ -z "$ARCHIVES" ]; then
         err "trailer Change: $CHANGE, but changes/$CHANGE.md does not exist (take the idea into work via mv first)"
 fi
 # Archives: requires the file deletion in the same commit
-if [ -n "$ARCHIVES" ] && ! git diff --cached --name-status | grep -q "^D	changes/$ARCHIVES.md$"; then
-    err "trailer Archives: $ARCHIVES, but changes/$ARCHIVES.md is not deleted in this commit"
+if [ -n "$ARCHIVES" ] && ! git diff --cached --name-status | grep -qE "^D\t(changes|ideas)/$ARCHIVES\.md$"; then
+    err "trailer Archives: $ARCHIVES, but neither changes/$ARCHIVES.md nor ideas/$ARCHIVES.md is deleted in this commit"
 fi
 # Question-lifecycle gate: deferred ("later/v0.1/отложено") open questions at
 # archive must be answered, promoted ("промоут → X" in the change file) or
