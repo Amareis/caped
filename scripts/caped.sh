@@ -150,6 +150,12 @@ DISCIPLINE
     Change: <parent> + Idea: <child>). Deferred scope is a finding too: a
     piece cut mid-change ("later") becomes an idea with spawned_from in the
     SAME commit that cuts it — silently deferred means lost.
+  - A finding addresses a standing contract in ANOTHER territory (another
+    cap / change / idea) → hand it off immediately: edit the target's
+    "Requirements" section on its file and record "handed off → <target>"
+    in the source's provenance; discussed but not applied = silently
+    deferred = lost; if the target must land first, add depends_on
+    [#territory-handoff].
   - Renaming an idea is one commit [#idea-rename]: git mv + the name: frontmatter fix + all
     referrers (depends_on, spawned_from, prose) — referrers ARE the rename's
     content, not unrelated edits; only the name: line changes, so rename
