@@ -342,7 +342,11 @@ def history_data():
         b = ev.get("born")
         a = ev.get("arch")
         if a:
-            status = "archived"
+            ns = run(["git", "show", "--name-status", "--format=", a[2]], check=False)
+            if re.search(r"^D\tideas/" + re.escape(n) + r"\.md$", ns, re.M):
+                status = "withdrawn"  # idea archived directly, never taken into work
+            else:
+                status = "archived"
         else:
             status = live.get(n, "?")
         rows.append(

@@ -175,6 +175,28 @@ expect_out '--clean succeeds [#render-clean]' --clean
 if [ -e .caped ]; then bad '.caped/ survived --clean [#render-clean]'
 else ok '--clean removes .caped/ [#render-clean]'; fi
 
+# --- idea archival: withdrawn shown in history ------------------------------
+add_idea delta "withdrawn idea"
+git add -A
+commit_msg <<'EOF'
+идея delta
+
+Idea: delta
+EOF
+git rm -q ideas/delta.md
+commit_msg <<'EOF'
+снята идея delta
+
+причина: устарела.
+
+Archives: delta
+EOF
+expect_out 'history shows withdrawn idea [#idea-archival]' history
+case "$OUT" in
+  *delta*"withdrawn"*) ok 'idea archived directly shows as withdrawn [#idea-archival]' ;;
+  *) bad "withdrawn missing: $OUT" ;;
+esac
+
 # --- rename stitching: old name shown as (was: ...) -------------------------
 new_repo
 add_idea oldname "renamed idea"

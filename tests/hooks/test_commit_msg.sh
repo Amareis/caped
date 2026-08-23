@@ -183,6 +183,25 @@ echo 'n3' >> notes.txt; git add notes.txt
 msg 'free note\n\nArchives: z\n'
 expect_reject 'Archives: without the file deletion [#archival]'
 
+# --- idea archival: D ideas/*.md needs Archives: ------------------------------
+echo '- идея ia' > ideas/ia.md; git add ideas/ia.md
+msg 'идея ia
+
+Idea: ia
+'
+expect_accept 'idea ia born (setup) [#idea-archival]'
+git rm -q ideas/ia.md
+msg 'снята идея ia
+'
+expect_reject_matching 'D ideas without Archives is rejected [#idea-archival]' 'deletion of idea'
+msg 'снята идея ia
+
+Причина: устарела.
+
+Archives: ia
+'
+expect_accept 'D ideas with Archives + причина passes [#idea-archival]'
+
 # --- question-lifecycle gate: deferred open questions at archive -------------
 printf -- '---
 name: _backlog

@@ -50,6 +50,11 @@ LIFECYCLE (each event is a separate atomic commit)
                 itself and refuses on red. They are convenience, not a bypass —
                 the hook enforces the same facts for manual commits too
                 [#lifecycle-cmds].
+  5. Idea archived directly (withdrawn/superseded, never taken into work):
+                deletion commit for ideas/<name>.md with trailer Archives: <name>
+                and the reason in the body; history shows 'withdrawn', references
+                (depends_on/spawned_from) keep resolving to the archived entity,
+                '?' stays for real drift only [#idea-archival].
 
 COMMIT TRAILERS (git trailers, enforced by the commit-msg hook)
 

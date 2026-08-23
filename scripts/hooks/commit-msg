@@ -98,6 +98,10 @@ while IFS=$'\t' read -r status p1 p2; do
                     want="$(basename "$p1" .md)"
                     [ "$ARCHIVES" = "$want" ] || err "deletion of change $p1 — trailer required: Archives: $want"
                     ;;
+                ideas/*.md)
+                    want="$(basename "$p1" .md)"
+                    [ "$ARCHIVES" = "$want" ] || err "deletion of idea $p1 — trailer required: Archives: $want (idea archived/withdrawn; references keep resolving)"
+                    ;;
             esac
             ;;
     esac
