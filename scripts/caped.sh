@@ -20,6 +20,15 @@ ABOUT [#dump-abstract]
   division of labor: the human decides WHAT, the agent does the secretary
   work — spawns ideas, records rationale, keeps the trailers.
 
+  The name: caped = "capability-ed". The tool assumes capability-organized
+  code (feature-sliced, FSD-like): every capability owns its files and its
+  README; the registry maps everything else by path prefixes.
+  This dump is the PORTABLE part: an agent in ANY adopting repo sees only
+  it. It carries working rules only — by design NOT the host project's
+  history, rationale, rejected alternatives, or roadmap; those live in the
+  project's own specs (here: the tool's root README.md). If something
+  project-specific is missing here, that is the boundary, not a hole.
+
 LIFECYCLE (each event is a separate atomic commit)
 
   1. Idea:      new file ideas/<name>.md, commit with trailer  Idea: <name>
