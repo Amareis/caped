@@ -76,6 +76,13 @@ CAPABILITY REGISTRY (caped.registry, TAB-separated: name, prefix, state, spec fi
   separate deliberate act after calibration.
   Paths outside the registry are ignored by design [#free-paths].
   Overlapping prefixes: longest prefix wins [#longest-prefix].
+  A cap is a decision territory, not necessarily code — business caps
+  (marketing, acquisition) point their prefixes at docs [#caps-territory].
+  Birth/split/merge of a cap is a contract commit touching caped.registry
+  [#registry-mutation]. A cap's spec README lives at
+  src/features/<cap>/README.md or caps/<cap>/README.md; the agent writes it
+  at change time from the human's words, the human approves it by diff —
+  keep it small enough to eyeball [#cap-readme-authorship].
 
 ADHOC (fileless) DECISIONS
 
@@ -102,11 +109,18 @@ SPAWNING IDEAS [#idea-autonomy] (the agent decides WHERE a decision lives — do
     territory); an idea becomes a cap when a standing territory appears.
   - Every idea carries a "Rejected alternatives" list — rejected
     alternatives with grounds, so the same circle is never walked twice.
+  - Open questions promote: a small open question is answered right in the
+    change and dies with it; a question that became work is promoted to an
+    idea (spawned_from records the origin) [#question-promotion].
 
 DISCIPLINE
 
   - One semantic event = one commit. Never mix mv/archival with UNRELATED
     edits; the archive commit's own content is the spec deltas it applies.
+  - Squashing a change is legitimate — but then the file's Provenance is the
+    only remaining step history [#squash-legit]. Scratch materials of a big
+    change sit beside the files and die with its deletion; parallel changes
+    on one branch are told apart by the Change: trailer [#change-scratch].
   - Chat is ephemeral, provenance is not: everything that influenced a decision
     lands in the file's "Provenance" section in the same commit (human quote /
     agent deduction with its reasoning).
@@ -143,8 +157,8 @@ DISCIPLINE
     name or a comment [#trace-refs]. Marker attributes: 'no-test' exempts
     from coverage [#trace-no-test], 'dump' marks the rule agent-facing —
     such rules MUST appear in this dump [#trace-dump-attr], trace fails on
-    'undumped' otherwise [#trace-undumped]. Run caped.sh trace to check the
-    balance before archiving a change [#trace-checker].
+    'undumped' otherwise [#trace-undumped]. Run caped.sh trace before
+    archiving a change — a red trace blocks the archive [#trace-checker].
   - The hook checks facts, not substance: the rename fact (not its 100%
     similarity), that Change: resolves to an existing change, that an adhoc
     contract body is non-empty (not what it says). Content validation is
@@ -164,7 +178,8 @@ COMMANDS
                           [#check-marker-fullness]
   caped.sh trace        — requirement<->test marker balance: defs are [#<slug>]
                           markers in enforced spec files, refs are the same
-                          markers in tests/code; fails on uncovered, dangling
+                          markers in all tracked files except spec files;
+                          fails on uncovered, dangling
                           or duplicated slugs ('[#<slug> no-test]' exempts)
   caped.sh render [view]— derived views (plan, history, coverage) printed to
                           stdout — read-only by default [#render-stdout]. --write
