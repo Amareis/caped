@@ -59,24 +59,28 @@ expect_pass() { # <name>
 }
 
 # A definition every test forgot: uncovered. [#trace-defs]
-new_repo "Rule one ${MK}alpha].\n" 'echo nothing here\n'
+new_repo "- ${MK}alpha] Rule one.\n" 'echo nothing here\n'
 expect_fail_matching 'def without ref is uncovered [#trace-checker]' 'uncovered'
 
 # A marker referencing a requirement that no longer exists: dangling. [#trace-refs]
-new_repo "Rule one ${MK}alpha].\n" "case beta ${MK}beta]\n"
+new_repo "- ${MK}alpha] Rule one.\n" "case beta ${MK}beta]\n"
 expect_fail_matching 'ref without def is dangling [#trace-refs]' 'dangling'
 
 # no-test: explicit exemption passes without any ref. [#trace-no-test]
-new_repo "Convention ${MK}gamma no-test].\n" 'echo nothing here\n'
+new_repo "- ${MK}gamma no-test] Convention.\n" 'echo nothing here\n'
 expect_pass 'no-test def without ref passes [#trace-no-test]'
 
 # The same slug defined twice is a duplicate, refs or not. [#trace-defs]
-new_repo "Rule ${MK}alpha]. Restated ${MK}alpha].\n" "case alpha ${MK}alpha]\n"
+new_repo "- ${MK}alpha] Rule.\n- ${MK}alpha] Restated.\n" "case alpha ${MK}alpha]\n"
 expect_fail_matching 'duplicate slug definition fails [#trace-defs]' 'duplicate'
 
 # Full balance: every def referenced, every ref defined. [#trace-checker]
-new_repo "Rule one ${MK}alpha]. Convention ${MK}gamma no-test].\n" "case alpha ${MK}alpha]\n"
+new_repo "- ${MK}alpha] Rule one.\n- ${MK}gamma no-test] Convention.\n" "case alpha ${MK}alpha]\n"
 expect_pass 'balanced defs and refs pass [#trace-checker]'
+
+# A marker quoted in spec prose is NOT a definition: the ref dangles. [#trace-defs]
+new_repo "Rule one ${MK}alpha], said inline.\n" "case alpha ${MK}alpha]\n"
+expect_fail_matching 'prose marker is not a def — ref dangles [#trace-defs]' 'dangling'
 
 echo
 echo "pass=$pass fail=$fail"

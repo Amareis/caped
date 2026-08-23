@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # caped trace — static requirement<->test balance check (no test execution).
 #
-#   defs — requirement markers in the spec files of enforced caps
-#          (caped.registry column 4); attributes inside the brackets:
+#   defs — requirement markers opening a bullet ('- [#<slug> ...') in the
+#          spec files of enforced caps (caped.registry column 4; by the
+#          req-form norm they live in the '## Requirements' section);
+#          a marker quoted in prose is NOT a definition. Attributes inside
+#          the brackets:
 #          " no-test" — explicit exemption from coverage,
 #          " dump"    — the requirement is agent-facing and MUST be
 #                      referenced in the rules dump (scripts/caped.sh)
@@ -39,8 +42,8 @@ is_spec() {
 
 for f in "${SPECS[@]}"; do
   [ -f "$f" ] || { echo "caped trace: spec file '$f' from $REG does not exist" >&2; exit 2; }
-  grep -oE '\[#[a-z0-9][a-z0-9-]*(( (no-test|dump))*)\]' "$f" \
-    | sed -E 's/^\[#([a-z0-9-]+)(( (no-test|dump))*)\]$/\1\t\2/' >> "$defs" || true
+  grep -oE '^- \[#[a-z0-9][a-z0-9-]*(( (no-test|dump))*)\]' "$f" \
+    | sed -E 's/^- \[#([a-z0-9-]+)(( (no-test|dump))*)\]$/\1\t\2/' >> "$defs" || true
 done
 
 while IFS= read -r f; do

@@ -7,10 +7,10 @@ Checks (errors, exit 1):
                 alternatives / Provenance / Open questions all present
   spawned_from — if set, resolves to a live (ideas//changes/) or archived
                 (Archives: trailer in git history) entity, renames stitched
-
-Warnings (reported, exit unaffected):
-  marker fullness — bold-lead bullets (`- **...**`) in enforced spec files
-  without a [#<slug>] marker: a requirement someone forgot to mark
+  req-form    — enforced spec files: a '## Requirements' section must exist;
+                inside it every bullet starts with a [#<slug>] marker
+                ('- [#slug[ attrs]] Statement...'); a marker bullet outside
+                the section is a misplaced definition
 
 Output is English and every error carries its fix — same pattern as the hook.
 No network, stdlib only.
@@ -33,6 +33,11 @@ REQUIRED_SECTIONS = (
     "Open questions",
 )
 EMPTY_SPAWNED = {"", "-", "null", "none", "~"}
+
+REQ_SECTION = "Requirements"
+BULLET_RE = re.compile(r"^[-*]\s+")
+REQ_DEF_RE = re.compile(r"^[-*]\s+\[#[a-z0-9][a-z0-9-]*(( (no-test|dump))*)\]\s")
+H2_RE = re.compile(r"^## (?!#)(.*\S)\s*$")
 
 
 def run(args):
@@ -104,8 +109,37 @@ def enforced_spec_files():
     return sorted(set(specs))
 
 
+def check_req_form(spec, rel, errors):
+    lines = spec.read_text(encoding="utf-8").splitlines()
+    in_req = False
+    found = False
+    for i, line in enumerate(lines, 1):
+        h2 = H2_RE.match(line)
+        if h2:
+            in_req = h2.group(1) == REQ_SECTION
+            found = found or in_req
+            continue
+        if in_req:
+            if BULLET_RE.match(line) and not REQ_DEF_RE.match(line):
+                errors.append(
+                    f"{rel}:{i}: requirement bullet without a leading [#<slug>] marker — "
+                    f"the form is '- [#<slug>] Statement...' (slug first, attributes inside "
+                    f"the brackets); plain prose inside the section needs no marker"
+                )
+        elif REQ_DEF_RE.match(line):
+            errors.append(
+                f"{rel}:{i}: requirement definition outside '## {REQ_SECTION}' — "
+                f"move the bullet into the section (### subgroups inside it are fine)"
+            )
+    if not found:
+        errors.append(
+            f"{rel}: no '## {REQ_SECTION}' section — requirements of an enforced cap live "
+            f"only there (fixed literal, never translated)"
+        )
+
+
 def main():
-    errors, warnings = [], []
+    errors = []
     live, born, archived, alias = known_entities()
     known = live | born | archived
 
@@ -144,18 +178,11 @@ def main():
                 )
 
     for spec in enforced_spec_files():
-        for i, line in enumerate(spec.read_text(encoding="utf-8").splitlines(), 1):
-            if re.match(r"^\s*[-*]\s+\*\*", line) and "[#" not in line:
-                warnings.append(
-                    f"{spec.relative_to(ROOT)}:{i}: bold-lead bullet without a [#<slug>] marker — "
-                    f"mark the requirement or reword it if it is prose"
-                )
+        check_req_form(spec, spec.relative_to(ROOT), errors)
 
-    for w in warnings:
-        print(f"warning {w}")
     for e in errors:
         print(f"error {e}")
-    print(f"caped check: {len(files)} file(s), {len(errors)} error(s), {len(warnings)} warning(s)")
+    print(f"caped check: {len(files)} file(s), {len(errors)} error(s)")
     return 1 if errors else 0
 
 

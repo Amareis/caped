@@ -58,23 +58,23 @@ expect_pass() { # <name>
 }
 
 # dump-attr def referenced in the dump: balanced. [#trace-dump-attr]
-new_repo "Rule one ${MK}alpha dump].\n" "rules: see ${MK}alpha]\n" "case alpha ${MK}alpha]\n"
+new_repo "- ${MK}alpha dump] Rule one.\n" "rules: see ${MK}alpha]\n" "case alpha ${MK}alpha]\n"
 expect_pass 'dump-attr def referenced in the dump passes [#trace-dump-attr]'
 
 # dump-attr def missing from the dump: undumped. [#trace-undumped]
-new_repo "Rule one ${MK}alpha dump].\n" 'rules: nothing here\n' "case alpha ${MK}alpha]\n"
+new_repo "- ${MK}alpha dump] Rule one.\n" 'rules: nothing here\n' "case alpha ${MK}alpha]\n"
 expect_fail_matching 'dump-attr def outside the dump is undumped [#trace-undumped]' 'undumped'
 
 # A test-file ref does not satisfy the dump requirement. [#trace-undumped]
-new_repo "Rule one ${MK}alpha dump]. Rule two ${MK}beta dump].\n" "rules: see ${MK}alpha]\n" "case ${MK}alpha] ${MK}beta]\n"
+new_repo "- ${MK}alpha dump] Rule one.\n- ${MK}beta dump] Rule two.\n" "rules: see ${MK}alpha]\n" "case ${MK}alpha] ${MK}beta]\n"
 expect_fail_matching 'test ref does not cover the dump [#trace-undumped]' 'undumped	beta'
 
 # Combined attributes parse: no-test + dump, referenced in the dump only. [#trace-dump-attr]
-new_repo "Convention ${MK}gamma no-test dump].\n" "rules: see ${MK}gamma]\n" 'echo nothing here\n'
+new_repo "- ${MK}gamma no-test dump] Convention.\n" "rules: see ${MK}gamma]\n" 'echo nothing here\n'
 expect_pass 'no-test + dump combination passes [#trace-dump-attr]'
 
 # A plain def never claims the dump: a test ref is enough. [#trace-dump-attr]
-new_repo "Rule one ${MK}alpha].\n" 'rules: nothing here\n' "case alpha ${MK}alpha]\n"
+new_repo "- ${MK}alpha] Rule one.\n" 'rules: nothing here\n' "case alpha ${MK}alpha]\n"
 expect_pass 'non-dump def does not need the dump [#trace-dump-attr]'
 
 echo

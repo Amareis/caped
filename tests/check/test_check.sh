@@ -11,6 +11,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 CAPED="$REPO_ROOT/scripts/caped.sh"
+MK='[#'
 
 pass=0; fail=0
 ok()  { printf 'PASS %s\n' "$1"; pass=$((pass + 1)); }
@@ -29,7 +30,7 @@ new_repo() { # fresh repo inside $TMP, cd into it
   git config user.email test@caped.dev
   git config user.name "caped test"
   printf 'root\tREADME.md\tenforced\tREADME.md\n' > caped.registry
-  printf '# fixture\n' > README.md
+  printf '# fixture\n\n## Requirements\n\n- %sfx no-test] Fixture requirement.\n' "$MK" > README.md
   git add -A
   git commit -qm seed
 }
@@ -133,15 +134,64 @@ run_check
 if [ "$RC" -eq 0 ]; then ok 'spawned_from to archived entity passes [#check-spawned-from]'
 else bad "archived spawned_from failed: $OUT"; fi
 
-# Bold-lead bullets without a marker warn but do not fail. [#check-marker-fullness]
+# Requirement form: a markerless bullet inside '## Requirements' of an
+# enforced spec is an error. [#req-form]
 new_repo
-valid_file ideas/theta.md
-printf -- '- **Rejected alternative** — prose, not a requirement\n' >> README.md
-git add -A && git commit -qm theta
+valid_file ideas/iota.md
+cat >> README.md <<EOF
+- ${MK}fx2] Marked requirement.
+- Unmarked requirement bullet.
+EOF
+git add -A && git commit -qm iota
 run_check
-if [ "$RC" -ne 0 ]; then bad "marker fullness must not fail the run: $OUT"
-elif printf '%s' "$OUT" | grep -q 'warning.*bold-lead'; then ok 'unmarked bold-lead bullet warns, exit 0 [#check-marker-fullness]'
-else bad "expected a bold-lead warning: $OUT"; fi
+expect_error 'markerless requirement bullet is an error [#req-form]' 'without a leading'
+
+# Slug-first bullets pass; prose and ### groups inside the section are fine. [#req-form]
+new_repo
+valid_file ideas/kappa.md
+cat >> README.md <<EOF
+
+### Subgroup
+
+Intro prose, no marker needed.
+
+- ${MK}fx2 no-test] Marked requirement.
+EOF
+git add -A && git commit -qm kappa
+run_check
+if [ "$RC" -eq 0 ]; then ok 'slug-first bullets pass, prose and ### untouched [#req-form]'
+else bad "req-form pass failed: $OUT"; fi
+
+# Idea/change files are not specs: their Requirements sections stay unchecked. [#req-form]
+new_repo
+valid_file ideas/lambda.md
+awk '{print} /^t$/{print ""; print "- A plain work item, no marker."}' ideas/lambda.md > ideas/lambda.tmp \
+  && mv ideas/lambda.tmp ideas/lambda.md
+git add -A && git commit -qm lambda
+run_check
+if [ "$RC" -eq 0 ]; then ok 'idea file Requirements are not spec-checked [#req-form]'
+else bad "idea file failed: $OUT"; fi
+
+# A marker bullet outside '## Requirements' is a misplaced definition. [#req-form]
+new_repo
+valid_file ideas/mu.md
+cat >> README.md <<EOF
+
+## Notes
+
+- ${MK}stray] Stray definition.
+EOF
+git add -A && git commit -qm mu
+run_check
+expect_error 'marker bullet outside the section is an error [#req-form]' 'outside'
+
+# An enforced spec without a '## Requirements' section is an error. [#req-form]
+new_repo
+valid_file ideas/nu.md
+printf '# fixture\n' > README.md
+git add -A && git commit -qm nu
+run_check
+expect_error 'spec without the section is an error [#req-form]' "no '## Requirements'"
 
 echo
 echo "pass=$pass fail=$fail"

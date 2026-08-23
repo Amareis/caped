@@ -162,13 +162,21 @@ DISCIPLINE
   - Specs (capability READMEs, ideas/changes) are written in the project's
     own language — match the language of the existing files
     [#interface-language].
-  - Requirements in enforced spec files carry stable [#<slug>] markers
-    [#trace-defs]; a test covering a requirement repeats the marker in its
-    name or a comment [#trace-refs]. Marker attributes: 'no-test' exempts
-    from coverage [#trace-no-test], 'dump' marks the rule agent-facing —
-    such rules MUST appear in this dump [#trace-dump-attr], trace fails on
-    'undumped' otherwise [#trace-undumped]. Run caped.sh trace before
-    archiving a change — a red trace blocks the archive [#trace-checker].
+  - Requirements in enforced spec files live ONLY as bullets inside the
+    '## Requirements' section (fixed literal, never translated), marker
+    FIRST: '- [#slug[ attrs]] Statement...' [#req-form]. A bullet without a
+    marker inside the section — or a marker bullet outside it — is a caped
+    check error. The bullet stays self-sufficient (statement + rationale,
+    not a bare slug); ### subgroups and intro prose inside the section are
+    allowed. Form is checked, never the phrasing. A test covering a
+    requirement repeats the marker in its name or a comment [#trace-refs];
+    references between requirements INSIDE a spec use {#slug} (braces) —
+    neither a definition nor a covering quote [#trace-defs]. Marker
+    attributes: 'no-test' exempts from coverage [#trace-no-test], 'dump'
+    marks the rule agent-facing — such rules MUST appear in this dump
+    [#trace-dump-attr], trace fails on 'undumped' otherwise
+    [#trace-undumped]. Run caped.sh trace before archiving a change — a red
+    trace blocks the archive [#trace-checker].
   - The hook checks facts, not substance: the rename fact (not its 100%
     similarity), that Change: resolves to an existing change, that an adhoc
     contract body is non-empty (not what it says). Content validation is
@@ -183,13 +191,16 @@ COMMANDS
   caped.sh check        — structural validation of ideas/ and changes/ [#check-structure]
                           (frontmatter,
                           required sections, spawned_from resolves to a live or
-                          archived entity) [#check-spawned-from]. Errors fail;
-                          marker-fullness gaps in enforced specs are warnings only
-                          [#check-marker-fullness]
-  caped.sh trace        — requirement<->test marker balance: defs are [#<slug>]
-                          markers in enforced spec files, refs are the same
-                          markers in all tracked files except spec files;
-                          fails on uncovered, dangling
+                          archived entity) [#check-spawned-from]; plus the
+                          requirement-form check on enforced specs: a '## Requirements'
+                          section must exist, every bullet in it starts with a
+                          [#<slug>] marker, marker bullets outside it are rejected
+                          [#req-form]. Errors fail with a fix instruction.
+  caped.sh trace        — requirement<->test marker balance: defs are
+                          slug-first bullets ('- [#<slug>] ...') in enforced
+                          spec files (a marker quoted in prose is NOT a def),
+                          refs are the same markers in all tracked files
+                          except spec files; fails on uncovered, dangling
                           or duplicated slugs ('[#<slug> no-test]' exempts)
   caped.sh render [view]— derived views (plan, history, coverage) printed to
                           stdout — read-only by default [#render-stdout]. --write
