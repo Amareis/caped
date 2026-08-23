@@ -97,7 +97,7 @@ EOF
         echo "caped archive: gate red — test suites failed, archive refused" >&2; exit 1
       fi
     else
-      if bash "scripts/caped.sh" trace >/dev/null 2>&1; then :; else
+      if bash "$(cd "$(dirname "$0")" && pwd)/caped.sh" trace >/dev/null 2>&1; then :; else
         echo "caped archive: trace red — archive refused" >&2; exit 1
       fi
     fi
