@@ -112,6 +112,20 @@ fi
 if [ -n "$ARCHIVES" ] && ! git diff --cached --name-status | grep -q "^D	changes/$ARCHIVES.md$"; then
     err "trailer Archives: $ARCHIVES, but changes/$ARCHIVES.md is not deleted in this commit"
 fi
+# Question-lifecycle gate: deferred ("later/v0.1/отложено") open questions at
+# archive must be answered, promoted ("промоут → X" in the change file) or
+# deposited into ideas/_backlog.md (a line naming the change IN THIS COMMIT).
+if [ -n "$ARCHIVES" ]; then
+    OLDQ="$(git show "HEAD:changes/$ARCHIVES.md" 2>/dev/null || true)"
+    FUTURE="$(printf '%s\n' "$OLDQ" | sed -n '/^## Open questions/,/^## /p' | grep -E 'v0\.1|позже|отлож|будущ|следующ' || true)"
+    if [ -n "$FUTURE" ]; then
+        PROMOTED="$(printf '%s\n' "$OLDQ" | grep 'промоут →' || true)"
+        DEPOSIT="$(git diff --cached -- ideas/_backlog.md | grep -E "\b$ARCHIVES\b" || true)"
+        if [ -z "$PROMOTED" ] && [ -z "$DEPOSIT" ]; then
+            err "archiving $ARCHIVES with deferred open questions — answer/promote them ('промоут → X' in the file) or deposit them into ideas/_backlog.md (a line naming $ARCHIVES in this commit)"
+        fi
+    fi
+fi
 
 CHANGED="$(git diff --cached --name-only)"
 

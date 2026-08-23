@@ -183,6 +183,62 @@ echo 'n3' >> notes.txt; git add notes.txt
 msg 'free note\n\nArchives: z\n'
 expect_reject 'Archives: without the file deletion [#archival]'
 
+# --- question-lifecycle gate: deferred open questions at archive -------------
+printf -- '---
+name: _backlog
+summary: x
+---
+
+## Requirements
+
+- placeholder
+' > ideas/_backlog.md
+git add ideas/_backlog.md
+msg 'идея _backlog (setup)
+
+Idea: _backlog
+'
+expect_accept 'idea _backlog born (setup) [#question-gate]'
+echo '- идея qg' > ideas/qg.md; git add ideas/qg.md
+msg 'идея qg
+
+Idea: qg
+'
+expect_accept 'idea qg born (setup) [#question-gate]'
+git mv ideas/qg.md changes/qg.md
+msg 'в работу qg
+
+Change: qg
+'
+expect_accept 'qg into work (setup) [#question-gate]'
+printf '
+## Open questions
+
+- Куда деть флаг: v0.1.
+' >> changes/qg.md; git add changes/qg.md
+msg 'работа qg: открытый вопрос
+
+Change: qg
+'
+expect_accept 'qg work commit with deferred OQ (setup) [#question-gate]'
+git rm -q changes/qg.md
+msg 'архив qg
+
+Change: qg
+Archives: qg
+'
+expect_reject_matching 'archive with deferred OQ and no deposit [#question-gate]' 'deferred open questions'
+printf '
+- qg note | from qg | 2026-08-23
+' >> ideas/_backlog.md
+git add ideas/_backlog.md
+msg 'архив qg
+
+Change: qg
+Archives: qg
+'
+expect_accept 'archive with deposit line in _backlog passes [#question-gate]'
+
 # --- init --------------------------------------------------------------------
 
 if bash scripts/caped-init.sh >/dev/null 2>&1; then

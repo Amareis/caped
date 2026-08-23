@@ -40,6 +40,10 @@ LIFECYCLE (each event is a separate atomic commit)
                 (those deltas ARE its content) and deletes changes/<name>.md,
                 trailers Change: <name> + Archives: <name>. Finishing may be a
                 single commit (deltas + deletion together) — splitting the
+                Deferred ("later") open questions cannot be archived silently:
+                answer, promote ("промоут → X" in the change file), or deposit
+                into ideas/_backlog.md (a line naming the change in the same
+                commit) — the hook enforces this [#question-gate].
                 last work commit and the deletion is valid but not required.
 
 COMMIT TRAILERS (git trailers, enforced by the commit-msg hook)
