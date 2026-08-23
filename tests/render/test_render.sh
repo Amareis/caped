@@ -432,6 +432,29 @@ if [ -z "$missing" ]; then ok '--write creates reqs.md + reqs.json too [#render-
 else bad "--write missed:$missing"; fi
 
 
+# --- changelog: contract commits as the free changelog ---------------------
+new_repo
+printf '# fixture\n\n## Requirements\n\n- %salpha-rule] Rule.\n' "$MK" > README.md
+git add -A; git commit -qm seed
+printf '# fixture\n\n## Requirements\n\n- %salpha-rule] Rule.\n\n- %sbeta-rule no-test] Beta rule.\n' "$MK" "$MK" > README.md
+git add README.md
+git commit -qF - <<'FIX'
+contract: beta rule added
+
+Adhoc: hotfix-x
+Behavior: contract
+Spec: README.md
+FIX
+expect_out 'changelog view succeeds [#tool-version]' changelog
+case "$OUT" in
+  *"contract change"*"beta rule added"*"Spec: README.md"*) ok 'contract commit listed with Spec [#tool-version]' ;;
+  *) bad "changelog wrong: $OUT" ;;
+esac
+case "$OUT" in
+  *"head "*" · "*"20"*) ok 'version constant on the first line [#tool-version]' ;;
+  *) bad "version line wrong: $OUT" ;;
+esac
+
 # --- text layout: two-line rows, no ANSI when piped -------------------------
 new_repo
 mkdir -p ideas

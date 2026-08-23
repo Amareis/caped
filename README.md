@@ -257,6 +257,11 @@ write-only слоем и дрейфует. Критерий границы v0 (�
   `caped events --since <n>` читает по курсору; реакции — версионированные `.caped/hooks/<event>`
   (политика репо, как git hooks; запуск с env CAPED_EVENT/CAPED_ENTITY/CAPED_COMMIT). Нотификация ≠
   энфорсмент: события — факты ПОСЛЕ (post-commit), хук-гейты — ДО.
+- [#tool-version dump] Версия тула = голова встроенного чейнджлога (view `render changelog`,
+  первая строка «caped changelog: N contract change(s) · head <hash> · <дата>»): сверка с
+  `.caped/state/tool-version` на запуске, смена → событие `tool-updated` в ленту; бандл
+  регенерится автогеном по событию `contract`/`archived` (`.caped/hooks` в tool-репо);
+  бинарь вшивает при сборке.
 - [#registry-mutation no-test dump] Мутации реестра: рождение/сплит/мерж капов — contract-коммит, трогающий
   `caped.registry`.
 - [#behavior-trailer dump] Класс изменения: коммит, трогающий enforced-капу, несёт `Behavior:

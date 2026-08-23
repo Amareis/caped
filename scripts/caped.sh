@@ -244,6 +244,10 @@ COMMANDS
                           archived / adhoc / contract and dispatches versioned
                           .caped/hooks/<event> scripts (repo policy, like git hooks)
                           [#event-feed]
+  render changelog    — the free contract changelog (Behavior: contract commits
+                          with their Spec:); its FIRST LINE is the tool's version
+                          constant — the bundled copy feeds the tool-updated event
+                          [#tool-version]
   caped render [view] — derived views (plan, history, coverage, reqs)
                           printed to
                           stdout — read-only by default [#render-stdout]; --json
