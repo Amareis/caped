@@ -25,8 +25,11 @@ LIFECYCLE (each event is a separate atomic commit)
   1. Idea:      new file ideas/<name>.md, commit with trailer  Idea: <name>
                 [#idea-birth]
   2. In work:   clean git mv ideas/<name>.md changes/<name>.md [#take-into-work] (no content
-                edits — rename detection must stitch the file's history),
-                trailer Change: <name>
+                edits — rename detection must stitch the file's history;
+                the mv keeps the filename), trailer Change: <name>. A
+                change is born ONLY this way — adding changes/<name>.md
+                directly is rejected (sole exception: the 'Change: init'
+                seed commit).
   3. Work:      every commit of the change carries Change: <name> [#work-trailer]; editing
                 changes/<name>.md without it is rejected by the hook
   4. Archive:   the final commit applies the deltas to capability READMEs [#archival]
@@ -39,14 +42,23 @@ COMMIT TRAILERS (git trailers, enforced by the commit-msg hook)
 
   Behavior: contract|internal|wip  — change class [#behavior-trailer], required for ANY commit
                                      touching enforced capabilities, the
-                                     archive commit included (subject
-                                     "wip*" counts as wip)
+                                     archive commit included (a subject
+                                     starting with "wip" counts as wip;
+                                     merge commits are exempt). A contract
+                                     hotfix = change file + code + spec
+                                     delta in ONE commit.
   Spec: <path>                     — on contract [#spec-trailer]: the path of the spec whose
                                      contract changes. Either the trailer or
                                      the spec file changed in the same commit
                                      satisfies the hook — no need for both.
   Idea: <name>                     — birth of ideas/<name>.md
-  Change: <name>                   — the commit belongs to changes/<name>.md
+  Change: <name>                   — the commit belongs to changes/<name>.md.
+                                     REQUIRED on contract commits (a contract
+                                     without a change doc is an undiscussed
+                                     rule), optional on internal/wip. Must
+                                     point at an existing changes/<name>.md —
+                                     except 'Change: init' (the seed) and the
+                                     archival commit itself.
   Archives: <name>                 — archival: the change file is deleted in
                                      this very commit
 
@@ -58,6 +70,10 @@ CAPABILITY REGISTRY (caped.registry, TAB-separated: name, prefix, state, spec fi
   legacy    — coverage declared, hook does not check (migration path)
   declared  — spec file exists, enforcement not yet enabled
   enforced  — hook requires Behavior/Spec
+  The root README.md is the root capability — the project as one big
+  feature; cross-cutting contract changes carry Spec: README.md.
+  Rollout: enforcement starts advisory; flipping to blocking is a
+  separate deliberate act after calibration.
   Paths outside the registry are ignored by design [#free-paths].
   Overlapping prefixes: longest prefix wins [#longest-prefix].
 
@@ -95,10 +111,12 @@ DISCIPLINE
     lands in the file's "Provenance" section in the same commit (human quote /
     agent deduction with its reasoning).
   - Frontmatter: name, summary, phase, priority, depends_on, spawned_from
-    (phase/priority are advisory free-form fields in v0).
+    (phase/priority are advisory free-form fields in v0). depends_on is a
+    gate: an idea cannot go into work while its dependency is unarchived.
   - Idea and change share ONE section set: "Why" / "Context" /
     "Requirements" / "Decisions" / "Rejected alternatives" / "Provenance" /
-    "Open questions" (a fresh idea may leave "Decisions" empty). Section
+    "Open questions" (a fresh idea may leave "Decisions" and "Rejected
+    alternatives" empty). Section
     names are fixed format strings — use them verbatim, never translated.
     A change may append extra sections at the bottom — typically "Tasks",
     a stage checklist for big tasks.
@@ -110,8 +128,8 @@ DISCIPLINE
     SAME commit that cuts it — silently deferred means lost.
   - Renaming an idea is one commit [#idea-rename]: git mv + the name: frontmatter fix + all
     referrers (depends_on, spawned_from, prose) — referrers ARE the rename's
-    content, not unrelated edits; the one-line file diff keeps rename
-    detection intact. No new trailer: the event is derived from the diff.
+    content, not unrelated edits; only the name: line changes, so rename
+    detection stays intact. No new trailer: the event is derived from the diff.
     Validation (name matches filename, no dangling refs) is caped check's
     territory, not the hook's.
   - A change that alters behavior leaves its scenarios as tests at archive
@@ -127,6 +145,10 @@ DISCIPLINE
     such rules MUST appear in this dump [#trace-dump-attr], trace fails on
     'undumped' otherwise [#trace-undumped]. Run caped.sh trace to check the
     balance before archiving a change [#trace-checker].
+  - The hook checks facts, not substance: the rename fact (not its 100%
+    similarity), that Change: resolves to an existing change, that an adhoc
+    contract body is non-empty (not what it says). Content validation is
+    caped check's territory; the rest is conscience and drift review.
 
 COMMANDS
 
@@ -134,7 +156,7 @@ COMMANDS
   caped.sh init         — wire up a repo (hook shims, registry, ideas/ +
                           changes/). Idempotent [#init-idempotent]: safe to re-run,
                           it only repairs missing pieces and refreshes the report.
-  caped.sh check        — structural validation of ideas//changes/ [#check-structure]
+  caped.sh check        — structural validation of ideas/ and changes/ [#check-structure]
                           (frontmatter,
                           required sections, spawned_from resolves to a live or
                           archived entity) [#check-spawned-from]. Errors fail;
