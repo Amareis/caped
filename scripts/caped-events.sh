@@ -69,7 +69,7 @@ events_cmd() { # caped events [--since <n>] — lines after the cursor, no parti
 }
 
 version_check() { # bundled changelog head vs the session cursor (tool-updated)
-  local bundle="$CAPED_BUNDLE_PATH" line stamp
+  local bundle="$(env | sed -n 's/^CAPED_BUNDLE_PATH=//p' | head -1)" line stamp
   [ -n "$bundle" ] || bundle="$(cd "$(dirname "$0")" && pwd)/CHANGELOG.caped.generated.md"
   [ -f "$bundle" ] || return 0
   line="$(head -1 "$bundle")"
@@ -87,13 +87,13 @@ version_check() { # bundled changelog head vs the session cursor (tool-updated)
 }
 
 case "$#" in
-  0) events_cmd ;;
+  0) version_check; events_cmd ;;
   *)
     case "$1" in
-      post-commit) post_commit ;;
+      post-commit) version_check; post_commit ;;
       version-check) version_check ;;
       emit) shift; emit "$1" "$2" ;;
-      *) events_cmd "$@" ;;
+      *) version_check; events_cmd "$@" ;;
     esac
     ;;
 esac

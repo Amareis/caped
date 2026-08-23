@@ -108,10 +108,10 @@ fi
 
 # --- tool-updated: the bundle head vs the session cursor ---------------------
 printf 'caped changelog: 1 contract change(s) · head a1b2c3d4 · 2026-08-23\n' > "$TMP/bundle.md"
-bash "$CAPED" trace >/dev/null 2>&1
+bash "$CAPED" events >/dev/null 2>&1
 N1="$(wc -l < .caped/events/feed.jsonl)"
 printf 'caped changelog: 2 contract change(s) · head e5f6a7b8 · 2026-08-23\n' > "$TMP/bundle.md"
-bash "$CAPED" trace >/dev/null 2>&1
+bash "$CAPED" events >/dev/null 2>&1
 N2="$(wc -l < .caped/events/feed.jsonl)"
 if [ "$N2" -gt "$N1" ] && tail -1 .caped/events/feed.jsonl | grep -q 'tool-updated'; then
   ok 'tool-updated event when the bundle head moves [#tool-version]'
