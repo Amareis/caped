@@ -72,7 +72,7 @@ CAPABILITY REGISTRY (caped.registry, TAB-separated: name, prefix, state, spec fi
               starts with it. READ caped.registry to know which paths are
               enforced — or just commit and let the hook tell you.
               Then survey the territory BEFORE any tracker action
-              (spawning, working, reviewing): run caped.sh render plan —
+              (spawning, working, reviewing): run `caped render plan` —
               the registry says which paths are enforced, the plan says
               what is already in work, stalled, or depended on; the hook
               guards format, not territory [#render-first]. The history
@@ -186,7 +186,7 @@ DISCIPLINE
     attributes: 'no-test' exempts from coverage [#trace-no-test], 'dump'
     marks the rule agent-facing — such rules MUST appear in this dump
     [#trace-dump-attr], trace fails on 'undumped' otherwise
-    [#trace-undumped]. Run caped.sh trace before archiving a change — a red
+    [#trace-undumped]. Run `caped trace` before archiving a change — a red
     trace blocks the archive [#trace-checker].
   - The hook checks facts, not substance: the rename fact (not its 100%
     similarity), that Change: resolves to an existing change, that an adhoc
@@ -195,8 +195,8 @@ DISCIPLINE
 
 COMMANDS
 
-  caped.sh              — this reference [#rules-in-cli]
-  caped.sh init         — wire up a repo (hook shims, registry, ideas/ +
+  caped               — this reference [#rules-in-cli]
+  caped init          — wire up a repo (hook shims, registry, ideas/ +
                           changes/, an AGENTS.md pointer if missing).
                           Linked mode [#linked-install]: the repo vendors NO
                           tool scripts — the shim points at the installed
@@ -204,7 +204,7 @@ COMMANDS
                           re-running init repairs the shim after the tool
                           moves. Idempotent [#init-idempotent]: safe to re-run,
                           it only repairs missing pieces and refreshes the report.
-  caped.sh check        — structural validation of ideas/ and changes/ [#check-structure]
+  caped check         — structural validation of ideas/ and changes/ [#check-structure]
                           (frontmatter,
                           required sections, spawned_from resolves to a live or
                           archived entity) [#check-spawned-from]; plus the
@@ -212,13 +212,13 @@ COMMANDS
                           section must exist, every bullet in it starts with a
                           [#<slug>] marker, marker bullets outside it are rejected
                           [#req-form]. Errors fail with a fix instruction.
-  caped.sh trace        — requirement<->test marker balance: defs are
+  caped trace         — requirement<->test marker balance: defs are
                           slug-first bullets ('- [#<slug>] ...') in enforced
                           spec files (a marker quoted in prose is NOT a def),
                           refs are the same markers in all tracked files
                           except spec files; fails on uncovered, dangling
                           or duplicated slugs ('[#<slug> no-test]' exempts)
-  caped.sh render [view]— derived views (plan, history, coverage, reqs)
+  caped render [view] — derived views (plan, history, coverage, reqs)
                           printed to
                           stdout — read-only by default [#render-stdout]; --json
                           prints the machine-readable form of a view (same
@@ -264,7 +264,7 @@ case "$cmd" in
     ;;
   trace) exec "$DIR/caped-trace.sh" ;;
   *)
-    echo "caped: unknown command '$cmd' — run scripts/caped.sh with no arguments for the rules" >&2
+    echo "caped: unknown command '$cmd' — run 'caped' with no arguments for the rules" >&2
     exit 2
     ;;
 esac
