@@ -54,9 +54,11 @@ while IFS= read -r f; do
 done < <(git ls-files)
 
 # Refs inside the rules dump specifically — for the undumped class.
-# Resolved next to this script, not relative to the repo: in linked mode
-# (adopting repo vendors nothing) the dump lives in the installed tool.
-DUMP="$(cd "$(dirname "$0")" && pwd)/caped.sh"
+# Prefer the repo's own dump (self-host layout, also what the fixtures
+# build); when the repo vendors nothing (linked mode), fall back to the
+# dump installed next to this script.
+DUMP=scripts/caped.sh
+[ -f "$DUMP" ] || DUMP="$(cd "$(dirname "$0")" && pwd)/caped.sh"
 [ -f "$DUMP" ] && grep -IoE '\[#[a-z0-9][a-z0-9-]*\]' "$DUMP" \
   | sed -E 's/^\[#([a-z0-9-]+)\]$/\1/' >> "$dumprefs" || true
 
