@@ -282,7 +282,15 @@ expect_push_error 'push: new requirement in a fileless contract fails [#adhoc-id
 push_repo
 for i in 1 2 3; do
   echo "n$i" >> notes.txt; git add notes.txt
-  git commit -qm "адхок $i\n\nтело: кластерное решение $i.\n\nAdhoc: fix-run\nBehavior: contract\nSpec: README.md"
+  git commit -qF - <<FIX
+адхок $i
+
+тело: кластерное решение $i.
+
+Adhoc: fix-run
+Behavior: contract
+Spec: README.md
+FIX
 done
 run_push
 expect_push_error 'push: Adhoc cluster of 3 is flagged [#adhoc-id]' 'materialise changes/fix-run.md'
@@ -290,7 +298,15 @@ expect_push_error 'push: Adhoc cluster of 3 is flagged [#adhoc-id]' 'materialise
 # A single well-formed fileless contract passes clean. [#adhoc-id]
 push_repo
 echo x >> notes.txt; git add notes.txt
-git commit -qm 'один адхок\n\nтело: одно решение, всё в порядке.\n\nAdhoc: one-off\nBehavior: contract\nSpec: README.md'
+git commit -qF - <<'FIX'
+один адхок
+
+тело: одно решение, всё в порядке.
+
+Adhoc: one-off
+Behavior: contract
+Spec: README.md
+FIX
 run_push
 if [ "$PRC" -eq 0 ]; then ok 'push: single named adhoc passes [#adhoc-id]'
 else bad "push clean failed: $POUT"; fi
