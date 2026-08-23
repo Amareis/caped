@@ -1,6 +1,7 @@
 # AGENTS.md
 
-Before doing anything in this repository, run `scripts/caped.sh` with no arguments —
+Before doing anything in this repository, run `caped` with no arguments (the wrapper
+in this repo's root; on the maintainer's machine also on PATH via ~/.local/bin/caped) —
 it prints the full working rules (idea/change lifecycle, commit trailers, capability
 registry). Follow that output; everything it states is enforced by the `commit-msg` hook.
 
