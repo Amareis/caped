@@ -12,3 +12,7 @@ Checks: run `just test` (or `bash scripts/run-tests.sh` when `just` is not insta
 caped trace plus every `tests/*/test_*.sh` suite. Run it before archiving a change; a red
 suite blocks the archive. These are the tool's own tests: there is deliberately no
 `caped test` command, an adopting project keeps its own runner.
+
+Developing the tool itself (not relevant to adopting repos): the tool's interface texts —
+the rules dump, this stub, hook messages, command output — are written in English; specs
+(root README, ideas/changes) are in the project's language (Russian here).

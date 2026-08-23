@@ -10,6 +10,16 @@ rules() {
   cat <<'EOF'
 caped — tracker and specs in git. The working rules of this repository.
 
+ABOUT [#dump-abstract]
+
+  caped keeps the project's tracker (idea -> change -> archive) and its
+  capability specs inside git itself. Specs live as capability READMEs next
+  to the code; every decision carries provenance (human quotes vs agent
+  deductions); the lifecycle is reconstructed from commit trailers, so no
+  status file can drift. A commit-msg hook enforces the discipline. The
+  division of labor: the human decides WHAT, the agent does the secretary
+  work — spawns ideas, records rationale, keeps the trailers.
+
 LIFECYCLE (each event is a separate atomic commit)
 
   1. Idea:      new file ideas/<name>.md, commit with trailer  Idea: <name>
@@ -65,7 +75,7 @@ SPAWNING IDEAS [#idea-autonomy] (the agent decides WHERE a decision lives — do
 
   The human decides WHAT; placing the decision correctly is your job:
   - Same contract territory as the current change → extend the change itself:
-    same Change: trailer, the decision appended to its Решения/Променанс.
+    same Change: trailer, the decision appended to its "Решения"/"Променанс".
   - New decision territory, open questions, a disputed call, >2 commits or
     several caps → a new idea file. Born inside a change → spawned_from plus
     a commit with Change: <parent> + Idea: <child>.
@@ -86,10 +96,12 @@ DISCIPLINE
     agent deduction with its reasoning).
   - Frontmatter: name, summary, phase, priority, depends_on, spawned_from
     (phase/priority are advisory free-form fields in v0).
-  - Idea and change share ONE section set: Зачем / Контекст / Требования /
-    Решения / Променанс / Открытые вопросы (a fresh idea may leave Решения
-    empty). A change may append extra sections at the bottom — typically
-    Задачи, a stage checklist for big tasks.
+  - Idea and change share ONE section set: "Зачем" / "Контекст" /
+    "Требования" / "Решения" / "Рассмотрено и отклонено" / "Променанс" /
+    "Открытые вопросы" (a fresh idea may leave "Решения" empty). Section
+    names are fixed format strings — use them verbatim, never translated.
+    A change may append extra sections at the bottom — typically "Задачи",
+    a stage checklist for big tasks.
   - Findings born inside a change: same contract/artifact → extend the SAME
     change (same Change: trailer, decisions appended to its file); a new
     decision territory → a new idea with spawned_from (commit with
@@ -106,8 +118,8 @@ DISCIPLINE
     time (for this tool: a hook rule without a scenario in tests/hooks/ is a
     process violation); docs/process-only changes are exempt.
   - Specs (capability READMEs, ideas/changes) are written in the project's
-    language; the tool's interface texts (this dump, AGENTS.md stub, hook
-    messages) are in English [#interface-language].
+    own language — match the language of the existing files
+    [#interface-language].
   - Requirements in enforced spec files carry stable [#<slug>] markers
     [#trace-defs]; a test covering a requirement repeats the marker in its
     name or a comment [#trace-refs]. Marker attributes: 'no-test' exempts
