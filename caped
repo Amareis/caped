@@ -1,4 +1,12 @@
 #!/bin/sh
 # caped — PATH-обёртка над диспетчером. Положи каталог тула в PATH
-# (или сделай symlink в ~/bin) и вызывай `caped <cmd>` из любой adopting-репы.
-exec "$(cd "$(dirname "$0")" && pwd)/scripts/caped.sh" "$@"
+# (или сделай symlink в ~/.local/bin) и вызывай `caped <cmd>` из любой
+# adopting-репы. Symlinks на сам wrapper разрешаются до реального пути.
+SOURCE="$0"
+while [ -L "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  case "$SOURCE" in /*) ;; *) SOURCE="$DIR/$SOURCE" ;; esac
+done
+DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+exec "$DIR/scripts/caped.sh" "$@"

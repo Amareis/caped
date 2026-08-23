@@ -96,6 +96,16 @@ else
   ok 'linked fixture trace has no dangling refs from the tool namespace [#linked-install]'
 fi
 
+# --- the wrapper works through a symlink (PATH install) ----------------------
+
+mkdir -p "$TMP/bin"
+ln -s "$REPO_ROOT/caped" "$TMP/bin/caped"
+if "$TMP/bin/caped" check >/dev/null 2>&1; then
+  ok 'wrapper resolves through a symlink [#linked-install]'
+else
+  bad 'wrapper resolves through a symlink [#linked-install] — non-zero exit'
+fi
+
 # --- idempotence --------------------------------------------------------------
 
 if bash "$REPO_ROOT/scripts/caped.sh" init >/dev/null 2>&1; then
