@@ -1,3 +1,4 @@
 .caped/
 __pycache__/
-.ideatests/secretary/last-e2e/
+.idea
+tests/secretary/last-e2e/
