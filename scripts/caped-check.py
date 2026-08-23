@@ -194,8 +194,8 @@ def push_check(argv):
         rec = rec.strip("\n")
         if not rec:
             continue
-        parts = rec.split(FS, 2)
-        if len(parts) < 3:
+        parts = rec.split(FS, 1)
+        if len(parts) < 2:
             continue
         h, body = parts
         if not re.search(r"^Behavior:\s*contract\s*$", body, re.M):
