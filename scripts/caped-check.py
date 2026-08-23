@@ -40,6 +40,7 @@ EMPTY_SPAWNED = {"", "-", "null", "none", "~"}
 REQ_SECTION = "Requirements"
 BULLET_RE = re.compile(r"^[-*]\s+")
 REQ_DEF_RE = re.compile(r"^[-*]\s+\[#[a-z0-9][a-z0-9-]*(( (no-test|dump))*)\]\s")
+DIFF_DEF_RE = re.compile(r"^\+[-*]\s+\[#([a-z0-9][a-z0-9-]*)(?: (?:no-test|dump))*\]\s", re.M)
 H2_RE = re.compile(r"^## (?!#)(.*\S)\s*$")
 
 
@@ -210,8 +211,9 @@ def push_check(argv):
             if rel not in changed:
                 continue
             diff = run(["git", "diff", f"{h}^", h, "--", rel])
-            added = re.findall(r"^\+[-*]\s+\[#([a-z0-9][a-z0-9-]*)(?: (?:no-test|dump))*\]", diff, re.M)
-            removed = re.findall(r"^-[-*]\s+\[#([a-z0-9][a-z0-9-]*)(?: (?:no-test|dump))*\]", diff, re.M)
+            added = DIFF_DEF_RE.findall(diff)
+            removed = [s for s in re.findall(r"\[#([a-z0-9][a-z0-9-]*)(?: (?:no-test|dump))*\]", diff, re.M)
+                       if re.search(r"^-[-*]\s+\[", diff, re.M)]
             if added:
                 errors.append(
                     f"{h[:8]}: fileless contract introduces requirement(s) {', '.join('#' + s for s in added)} in {rel} — new requirements live in a filed change, not an adhoc"
