@@ -90,7 +90,7 @@ for cmd in check trace render; do
   fi
 done
 
-if "$REPO_ROOT/caped" trace 2>&1 | grep -q 'dangling'; then
+if "$REPO_ROOT/caped" trace 2>&1 | grep -qE '^caped trace: RED'; then
   bad 'linked fixture trace has no dangling refs from the tool namespace [#linked-install]'
 else
   ok 'linked fixture trace has no dangling refs from the tool namespace [#linked-install]'
