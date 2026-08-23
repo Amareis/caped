@@ -82,11 +82,16 @@ report="$(awk -F'\t' '
 
 ndefs="$(cut -f1 "$defs" | sort -u | grep -c . || true)"
 nrefs="$(sort -u "$refs" | grep -c . || true)"
+nnotest="$(awk -F'\t' '$2 ~ /no-test/ { print $1 }' "$defs" | sort -u | grep -c . || true)"
 
 if [ -n "$report" ]; then
-  echo "caped trace: requirement/test imbalance:"
+  nu="$(printf '%s\n' "$report" | grep -c '^uncovered' || true)"
+  nd="$(printf '%s\n' "$report" | grep -c '^dangling' || true)"
+  np="$(printf '%s\n' "$report" | grep -c '^duplicate' || true)"
+  nuu="$(printf '%s\n' "$report" | grep -c '^undumped' || true)"
+  echo "caped trace: RED — defs $ndefs, refs $nrefs: $nu uncovered, $nd dangling, $np duplicate, $nuu undumped"
   echo "$report" | sed 's/^/  /'
   exit 1
 fi
 
-echo "caped trace: OK — $ndefs requirement markers defined, $nrefs referenced"
+echo "caped trace: OK — defs $ndefs ($nnotest no-test), refs $nrefs: 0 uncovered, 0 dangling, 0 duplicate, 0 undumped"
