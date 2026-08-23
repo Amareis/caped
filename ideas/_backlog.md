@@ -17,6 +17,7 @@ spawned_from: null
 
 - Конфиг-слой caped (языковые списки маркеров requirement-format O3/O2, пути по умолчанию, предпочтения плагина) — «конфиги сами будущая идея» | from question-lifecycle | 2026-08-23
 - События состояний проверок (trace-red/check-red) как типы ленты — возможная точка расширения caped-event-hooks, потребитель при появлении | from caped-event-hooks | 2026-08-23
+- Команда `caped archive <name>` — удобный слой депозита отложенных OQ в _backlog + `git rm` + коммит архивации; фаза 2 question-lifecycle, после гейта | from question-lifecycle | 2026-08-23
 
 ## Decisions
 
