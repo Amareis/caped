@@ -265,7 +265,7 @@ Adhoc: hotfix-norm
 Behavior: contract
 Spec: README.md'
 cat >> README.md <<EOF
-- "$MK"new-rule] Brand new requirement.
+- $MKnew-rule] Brand new requirement.
 EOF
 git add README.md
 git commit -qm 'адхок вводит требование в спек
