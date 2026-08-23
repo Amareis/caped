@@ -137,14 +137,9 @@ case "$OUT" in
   *"== change: beta =="*"idea"*"идея beta"*) ok 'live idea: doc from FS [#change-show]' ;;
   *) bad "live idea show wrong: $OUT" ;;
 esac
-add_idea gamma "an in-work change"
+mkdir -p changes ideas
+printf -- '---\nname: gamma\nsummary: an in-work change\n---\n' > changes/gamma.md
 git add -A
-commit_msg <<'EOF'
-идея gamma
-
-Idea: gamma
-EOF
-git mv ideas/gamma.md changes/gamma.md
 commit_msg <<'EOF'
 в работу gamma
 
