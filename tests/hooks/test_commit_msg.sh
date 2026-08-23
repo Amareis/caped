@@ -70,12 +70,12 @@ echo 'fn a4() {}' >> src/a.rs; git add src/a.rs
 msg 'change src contract\n\nrationale: needed for X\n\nBehavior: contract\n'
 expect_reject 'Behavior: contract without Spec and without spec file [#spec-trailer]'
 
-msg 'change src contract\n\nrationale: needed for X\n\nBehavior: contract\nSpec: src/README.md\n'
+msg 'change src contract\n\nrationale: needed for X\n\nAdhoc: hotfix\nBehavior: contract\nSpec: src/README.md\n'
 expect_accept 'contract with Spec trailer [#spec-trailer]'
 
 echo '# src spec v2' > src/README.md; git add src/a.rs src/README.md 2>/dev/null || git add src/README.md
 echo 'fn a5() {}' >> src/a.rs; git add src/a.rs src/README.md
-msg 'change src contract\n\nrationale: spec changed inline\n\nBehavior: contract\n'
+msg 'change src contract\n\nrationale: spec changed inline\n\nAdhoc: hotfix\nBehavior: contract\n'
 expect_accept 'contract with the spec file in the commit (no trailer) [#spec-trailer]'
 
 echo 'fn a6() {}' >> src/a.rs; git add src/a.rs
