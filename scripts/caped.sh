@@ -67,6 +67,12 @@ CAPABILITY REGISTRY (caped.registry, TAB-separated: name, prefix, state, spec fi
   prefix    — a path prefix; a commit "touches" the cap when a staged file
               starts with it. READ caped.registry to know which paths are
               enforced — or just commit and let the hook tell you.
+              Then survey the territory BEFORE any tracker action
+              (spawning, working, reviewing): run caped.sh render plan —
+              the registry says which paths are enforced, the plan says
+              what is already in work, stalled, or depended on; the hook
+              guards format, not territory [#render-first]. The history
+              and coverage views are on demand.
   legacy    — coverage declared, hook does not check (migration path)
   declared  — spec file exists, enforcement not yet enabled
   enforced  — hook requires Behavior/Spec

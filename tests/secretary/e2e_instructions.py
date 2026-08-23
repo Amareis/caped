@@ -189,7 +189,7 @@ def run_scenario(name, setup, task, check, attempt=1):
         # The artifacts are the contract, not the model's final word: a cheap
         # model may keep exploring past the finished work — evaluate the repo
         # state regardless of how the loop ended.
-        ok, why = check(repo)
+        ok, why = check(repo, trajectory)
         if not ok and not any("final" in t for t in trajectory):
             why = f"step budget exhausted; {why}"
         return ok, repo, trajectory, why
@@ -209,7 +209,7 @@ def git_log_body(repo, n=3):
     return out
 
 
-def check_spawned_idea(repo):
+def check_spawned_idea(repo, _trajectory):
     """A new idea file with spawned_from: alpha, born in a commit carrying
     both Idea: <child> and Change: alpha."""
     new = [f for f in (repo / "ideas").glob("*.md") if f.stem != "alpha"]
@@ -231,7 +231,7 @@ def check_spawned_idea(repo):
     return True, "ok"
 
 
-def check_renamed_idea(repo):
+def check_renamed_idea(repo, _trajectory):
     """ideas/pre-push-hooks.md exists with a fixed name: field, ideas/x.md is
     gone, and the rename is one commit (rename detection sees it)."""
     target = repo / "ideas" / "pre-push-hooks.md"
@@ -247,6 +247,24 @@ def check_renamed_idea(repo):
     ).stdout
     if not re.search(r"^R\d+\s+ideas/x\.md\s+ideas/pre-push-hooks\.md", out, re.M):
         return False, f"last commit is not a clean rename: {out}"
+    return True, "ok"
+
+
+def check_surveyed_plan(repo, trajectory):
+    """Arriving agent surveyed the territory (ran render) and did not
+    duplicate the in-flight change alpha: no new idea or change files.
+    [#render-first]"""
+    ran_render = any(
+        "render" in t.get("command", "") for t in trajectory if "tool" in t
+    )
+    if not ran_render:
+        return False, "agent never ran render"
+    new_ideas = list((repo / "ideas").glob("*.md"))
+    if new_ideas:
+        return False, f"duplicate idea spawned: {new_ideas}"
+    extra = [f for f in (repo / "changes").glob("*.md") if f.stem != "alpha"]
+    if extra:
+        return False, f"duplicate change spawned: {extra}"
     return True, "ok"
 
 
@@ -266,6 +284,14 @@ SCENARIOS = [
         "The idea x is badly named. Rename it to pre-push-hooks following this "
         "repository's rules, and nothing else.",
         check_renamed_idea,
+    ),
+    (  # [#render-first]
+        "render-first-arrival",
+        setup_in_work_change,
+        "I want to start work on tightening this repo's hook policy. Before "
+        "doing anything, figure out what the repo's tracker already has about "
+        "that and tell me the right next step. Do NOT do the work itself.",
+        check_surveyed_plan,
     ),
 ]
 
