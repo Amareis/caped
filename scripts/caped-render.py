@@ -693,7 +693,7 @@ def _show_candidates(name):
     for rec in log.split(RS):
         for m in re.finditer(r"^Adhoc:\s*(\S+)\s*$", rec, re.M):
             known.add(m.group(1))
-    return difflib.get_close_matches(name, sorted(known), n=3, cutoff=0.5)
+    return difflib.get_close_matches(name, sorted(known), n=3, cutoff=0.0)
 
 def main(argv):
     if argv and argv[0] == "change":
