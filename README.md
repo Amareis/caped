@@ -122,8 +122,12 @@ verify) — это замена openspec-валидации SHALL-граммат
 `Change:`-трейлеру), история фичи (`git log --follow` + фильтр по трейлерам), индекс тестов (doc-комменты +
 имена; тесты остаются в `tests/` с маркерами требований, README капа ссылается на них).
 
-- [#render-stdout dump] `caped render` — CLI чтения: печатает views (`plan`, `history`, `coverage`) в stdout
-  и по умолчанию ничего не пишет.
+- [#render-stdout dump] `caped render` — CLI чтения: печатает views (`plan`, `history`, `coverage`,
+  `reqs`) в stdout и по умолчанию ничего не пишет.
+- [#render-text-layout dump] Текстовые views выложены для глаз двумя слоями: имя сущности и маркеры
+  состояния — своей строкой, summary — следующей, метаданные (last/deps/from) — последними и приглушёнными;
+  `reqs` группируется по файлу-источнику, длинные сабджекты урезаются. ANSI только на TTY (NO_COLOR
+  уважается): в пайпе вывод чистый, без escape-кодов — агент читает тот же текст без сюрпризов.
 - [#render-json dump] Любой view имеет машиночитаемую форму `--json`: вложенный объект со стабильными ключами
   (name, status, phase, priority, deps[], spawned_from, last_commit{date,hash,subject}, age_days, stalled,
   blocked); text и JSON делят один генератор данных, text остаётся дефолтом.

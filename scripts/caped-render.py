@@ -24,6 +24,7 @@ Views:
              (slug optional) from ideas/ and changes/
 """
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -34,6 +35,32 @@ from pathlib import Path
 RS, FS = "\x1e", "\x1f"
 STALLED_DAYS = 7
 TOP_FREE = 5
+SUBJECT_MAX = 60
+
+# Text views are laid out for the eye: entity name and status marks on their
+# own line, the summary next, metadata last and dimmed. ANSI only on a TTY
+# (NO_COLOR respected) — piped output stays plain for agents [#render-text-layout].
+_COLOR = sys.stdout.isatty() and not os.environ.get("NO_COLOR")
+
+
+def _paint(code, s):
+    return f"\x1b[{code}m{s}\x1b[0m" if _COLOR else s
+
+
+def bold(s):
+    return _paint("1", s)
+
+
+def dim(s):
+    return _paint("2", s)
+
+
+def red(s):
+    return _paint("31", s)
+
+
+def shorten(s, n=SUBJECT_MAX):
+    return s if len(s) <= n else s[: n - 1] + "…"
 
 VIEW_FILES = {"plan": "plan.md", "history": "history.md", "coverage": "coverage.txt", "reqs": "reqs.md"}
 
@@ -187,39 +214,39 @@ def plan_data():
     return {"view": "plan", "in_work": in_work, "ideas": ideas}
 
 
-def plan_row_line(r):
+def plan_row_lines(r):
     marks = ""
     if r["blocked"]:
-        marks += f"  BLOCKED (dep unarchived: {', '.join(r['blocked'])})"
+        marks += "  " + red(f"BLOCKED (dep unarchived: {', '.join(r['blocked'])})")
     if r["stalled"]:
-        marks += f"  STALLED >{STALLED_DAYS}d"
+        marks += "  " + red(f"STALLED >{STALLED_DAYS}d")
     lc = r["last_commit"]
     if lc:
-        age = f" ({r['age_days']}d ago)" if r["age_days"] else " (today)"
-        last = f"last: {lc['date']} {lc['hash']} «{lc['subject']}»{age}"
+        age = f"{r['age_days']}d ago" if r["age_days"] else "today"
+        last = f"last: {lc['date']} {lc['hash']} «{shorten(lc['subject'])}» ({age})"
     else:
         last = "last: —"
     bits = " ".join(b for b in (r["phase"], r["priority"]) if b)
     deps = ", ".join(r["deps"]) if r["deps"] else "—"
     frm = r["spawned_from"] or "—"
-    return f"{r['name']:<20} {bits:<14} {last}  deps: {deps}  from: {frm}{marks}"
+    lines = [f"  {bold(r['name'])}  {dim(bits)}{marks}"]
+    if r["summary"]:
+        lines.append(f"    {r['summary']}")
+    lines.append(dim(f"    {last} · deps: {deps} · from: {frm}"))
+    return lines
 
 
 def view_plan_text(data):
-    lines = ["== plan ==", "-- in work --"]
+    lines = [bold("== plan =="), dim("-- in work --")]
     if not data["in_work"]:
         lines.append("  (none)")
     for r in data["in_work"]:
-        lines.append("  " + plan_row_line(r))
-        if r["summary"]:
-            lines.append(f"      {r['summary']}")
-    lines.append("-- ideas --")
+        lines.extend(plan_row_lines(r))
+    lines.append(dim("-- ideas --"))
     if not data["ideas"]:
         lines.append("  (none)")
     for r in data["ideas"]:
-        lines.append("  " + plan_row_line(r))
-        if r["summary"]:
-            lines.append(f"      {r['summary']}")
+        lines.extend(plan_row_lines(r))
     return "\n".join(lines)
 
 
@@ -299,7 +326,7 @@ def history_data():
 
 
 def view_history_text(data):
-    lines = ["== history (from git trailers) ==", f"  {'change':<22} {'born':<19} {'archived':<19} summary"]
+    lines = [bold("== history (from git trailers) =="), dim(f"  {'change':<22} {'born':<19} {'archived':<19} summary")]
     if not data["rows"]:
         lines.append("  (no archived or born entities yet)")
     for r in data["rows"]:
@@ -309,14 +336,14 @@ def view_history_text(data):
         else:
             acell = f"- {r['status']}"  # idea / in work / ? (drift, visible by design)
         old = f" (was: {r['was']})" if r["was"] else ""
-        lines.append(f"  {r['name']:<22} {bcell:<19} {acell:<19} {r['summary']}{old}")
-    lines.append("-- adhoc decisions (fileless contract commits) --")
+        lines.append(f"  {bold(r['name'])}{' ' * max(1, 22 - len(r['name']))} {dim(bcell):<19} {dim(acell):<19} {r['summary']}{old}")
+    lines.append(dim("-- adhoc decisions (fileless contract commits) --"))
     if not data["adhoc"]:
         lines.append("  (none)")
     for a in data["adhoc"]:
-        lines.append(f"  {a['date']} {a['hash']}  {a['subject']}")
+        lines.append(f"  {dim(a['date'] + ' ' + a['hash'])}  {bold(a['subject'])}")
         if a.get("excerpt"):
-            lines.append(f"      {a['excerpt']}")
+            lines.append(dim(f"      {a['excerpt']}"))
     return "\n".join(lines)
 
 
@@ -357,18 +384,18 @@ def coverage_data():
 
 
 def view_coverage_text(data):
-    lines = [f"== coverage — {data['total']} tracked files, longest-prefix-wins =="]
+    lines = [bold(f"== coverage — {data['total']} tracked files, longest-prefix-wins ==")]
     for state in ("enforced", "declared", "legacy", "free"):
         n = data["by_state"].get(state, 0)
         note = " (outside the registry — ignored by the hook)" if state == "free" else ""
-        lines.append(f"  {state:<9} {n:>4} files{note}")
-    lines.append("-- per cap --")
+        lines.append(f"  {state:<9} {n:>4} files{dim(note)}")
+    lines.append(dim("-- per cap --"))
     if not data["caps"]:
         lines.append("  (no registry)")
     for c in data["caps"]:
-        lines.append(f"  {c['name']:<16} {c['state']:<9} {c['files']:>4} files  ({c['prefix']})")
+        lines.append(f"  {bold(c['name'])}{' ' * max(1, 16 - len(c['name']))} {c['state']:<9} {c['files']:>4} files  {dim('(' + c['prefix'] + ')')}")
     if data["top_free"]:
-        lines.append("-- top free paths --")
+        lines.append(dim("-- top free paths --"))
         for t in data["top_free"]:
             lines.append(f"  {t['path']:<24} {t['files']:>4} files")
     return "\n".join(lines)
@@ -435,17 +462,19 @@ def reqs_data():
 
 
 def view_reqs_text(data):
-    lines = ["== reqs — requirement index (slug + first-line gist) ==", "-- specs (enforced) --"]
-    if not data["specs"]:
+    lines = [bold("== reqs — requirement index (slug + first-line gist) ==")]
+    groups = [("spec", r["source"], r) for r in data["specs"]]
+    groups += (("idea" if r["status"] == "idea" else "in work", r["source"], r) for r in data["entities"])
+    by_source = {}
+    for kind, source, r in groups:
+        by_source.setdefault((source, kind), []).append(r)
+    if not by_source:
         lines.append("  (none)")
-    for r in data["specs"]:
-        lines.append(f"  [#{r['slug']}] {r['gist']}  ({r['source']})")
-    lines.append("-- ideas / changes --")
-    if not data["entities"]:
-        lines.append("  (none)")
-    for r in data["entities"]:
-        slug = f"[#{r['slug']}] " if r["slug"] else ""
-        lines.append(f"  {slug}{r['gist']}  ({r['source']})")
+    for (source, kind), rows in by_source.items():
+        lines.append(dim(f"-- {source} ({kind}) --"))
+        for r in rows:
+            slug = f"[#{r['slug']}] " if r["slug"] else ""
+            lines.append(f"  {dim(slug)}{r['gist']}" if r["slug"] else f"  {r['gist']}")
     return "\n".join(lines)
 
 

@@ -322,11 +322,11 @@ case "$OUT" in
   *) bad "spec req row wrong: $OUT" ;;
 esac
 case "$OUT" in
-  *"${MK}beta-rule] Beta rule gist on one line."*"(README.md)"*) ok 'single-line gist without wrap marker [#render-reqs]' ;;
+  *"-- README.md (spec) --"*"${MK}beta-rule] Beta rule gist on one line."*) ok 'single-line gist without wrap marker, grouped by source [#render-reqs]' ;;
   *) bad "single-line gist wrong: $OUT" ;;
 esac
 case "$OUT" in
-  *"Zeta wants a thing done quickly."*"(ideas/zeta.md)"*) ok 'idea bullet gist listed with source [#render-reqs]' ;;
+  *"-- ideas/zeta.md (idea) --"*"Zeta wants a thing done quickly."*) ok 'idea bullet gist listed under its source header [#render-reqs]' ;;
   *) bad "idea req row missing: $OUT" ;;
 esac
 case "$OUT" in
@@ -372,6 +372,39 @@ for f in plan.md history.md coverage.txt reqs.md plan.json history.json coverage
 done
 if [ -z "$missing" ]; then ok '--write creates reqs.md + reqs.json too [#render-write]'
 else bad "--write missed:$missing"; fi
+
+
+# --- text layout: two-line rows, no ANSI when piped -------------------------
+new_repo
+mkdir -p ideas
+cat > ideas/eta.md <<'FIX'
+---
+name: eta
+summary: layout fixture with a blocking dep
+phase: v0
+priority: high
+depends_on: [theta]
+---
+FIX
+git add -A
+commit_msg <<'FIX'
+идея eta
+
+Idea: eta
+FIX
+expect_out 'plan renders for the layout checks [#render-text-layout]' plan
+case "$OUT" in
+  *$'\x1b'*) bad "ANSI escapes in piped output: $OUT" ;;
+  *) ok 'piped output is plain (no ANSI) [#render-text-layout]' ;;
+esac
+case "$OUT" in
+  *$'  eta  v0 high  BLOCKED (dep unarchived: theta)\n'*) ok 'name and marks on their own line [#render-text-layout]' ;;
+  *) bad "name line wrong: $OUT" ;;
+esac
+case "$OUT" in
+  *$'\n    last: 20'*" · deps: theta · from: —"*) ok 'metadata on a separate dimmed line [#render-text-layout]' ;;
+  *) bad "metadata line wrong: $OUT" ;;
+esac
 
 echo
 echo "pass=$pass fail=$fail"

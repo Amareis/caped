@@ -229,7 +229,11 @@ COMMANDS
                           body excerpt under each subject
                           [#render-history-adhoc]; reqs is the requirement
                           index — slug + first-line gist from enforced specs,
-                          bullet gists from ideas/changes [#render-reqs]
+                          bullet gists from ideas/changes, grouped by source
+                          file [#render-reqs]. Text views are laid out for the
+                          eye (name line, summary, dimmed metadata); ANSI only
+                          on a TTY (NO_COLOR respected) — piped output is
+                          plain, agents read the same text [#render-text-layout]
 
 A hook error is an instruction: read it and fix the commit accordingly.
 EOF
