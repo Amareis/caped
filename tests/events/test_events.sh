@@ -18,6 +18,7 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 cd "$TMP"
+export CAPED_BUNDLE_PATH="$TMP/bundle.md"
 git init -q
 git config user.email test@caped.dev
 git config user.name "caped test"
@@ -103,6 +104,19 @@ if [ -f .caped/dispatch.log ] && grep -q 'dispatch taken-into-work ex1' .caped/d
   ok 'dispatch ran .caped/hooks/taken-into-work with env context [#event-feed]'
 else
   bad "dispatch log missing: $(cat .caped/dispatch.log 2>/dev/null || echo none)"
+fi
+
+# --- tool-updated: the bundle head vs the session cursor ---------------------
+printf 'caped changelog: 1 contract change(s) · head a1b2c3d4 · 2026-08-23\n' > "$TMP/bundle.md"
+bash "$CAPED" trace >/dev/null 2>&1
+N1="$(wc -l < .caped/events/feed.jsonl)"
+printf 'caped changelog: 2 contract change(s) · head e5f6a7b8 · 2026-08-23\n' > "$TMP/bundle.md"
+bash "$CAPED" trace >/dev/null 2>&1
+N2="$(wc -l < .caped/events/feed.jsonl)"
+if [ "$N2" -gt "$N1" ] && tail -1 .caped/events/feed.jsonl | grep -q 'tool-updated'; then
+  ok 'tool-updated event when the bundle head moves [#tool-version]'
+else
+  bad "tool-updated missing: $(tail -1 .caped/events/feed.jsonl 2>/dev/null)"
 fi
 
 echo

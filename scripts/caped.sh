@@ -6,6 +6,12 @@ set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 cmd="${1:-}"
 
+# tool-updated: compare the bundled changelog head against the session cursor
+# (cheap reads; writes only when the tool version changed).
+if [ -d .git ]; then
+  "$DIR/caped-events.sh" version-check || true
+fi
+
 rules() {
   cat <<'EOF'
 caped — tracker and specs in git. The working rules of this repository.

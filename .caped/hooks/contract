@@ -1,0 +1,6 @@
+#!/bin/sh
+# tool repo policy: after a contract commit, regenerate the bundled changelog
+# (scripts/CHANGELOG.caped.generated.md, gitignored). The next caped run emits
+# tool-updated if the version line moved.
+ROOT="$(git rev-parse --show-toplevel)"
+"$ROOT/caped" render changelog > "$ROOT/scripts/CHANGELOG.caped.generated.md" 2>/dev/null || true

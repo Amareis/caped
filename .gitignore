@@ -2,5 +2,6 @@
 !.caped/hooks/
 !.caped/hooks/*
 __pycache__/
+scripts/CHANGELOG.caped.generated.md
 .idea
 tests/secretary/last-e2e/

@@ -1,0 +1,4 @@
+#!/bin/sh
+# tool repo policy: after an archival commit, regenerate the bundled changelog.
+ROOT="$(git rev-parse --show-toplevel)"
+"$ROOT/caped" render changelog > "$ROOT/scripts/CHANGELOG.caped.generated.md" 2>/dev/null || true
