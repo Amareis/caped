@@ -19,7 +19,7 @@ spawned_from: null
 - События состояний проверок (trace-red/check-red) как типы ленты — возможная точка расширения caped-event-hooks, потребитель при появлении | from caped-event-hooks | 2026-08-23
 - Команда `caped archive <name>` — удобный слой депозита отложенных OQ в _backlog + `git rm` + коммит архивации; фаза 2 question-lifecycle, после гейта | from question-lifecycle | 2026-08-23
 - ПРОМОУТ: tool-updated и версия тула (встроенный `render changelog` + версия-константа + авгоген по событию) → идея `tool-changelog` (2026-08-23) | from caped-event-hooks | 2026-08-23
-- Команда «caped version»: печать версии-строки из бандла + пути к нему — контрактная точка для консьюмера (плагин читает версию тула, а не путь сам) | from tool-changelog | 2026-08-23
+- ПРОМОУТ: Команда «caped version» (печать версии-строки из бандла + --path) → идея `caped-version` (2026-08-23) | from tool-changelog | 2026-08-23
 
 ## Decisions
 
