@@ -222,6 +222,80 @@ run_check
 if [ "$RC" -eq 0 ]; then ok 'slug-first bullet and backticked mention pass [#req-form]'
 else bad "idea slug-first bullet failed: $OUT"; fi
 
+# --- caped check push: pre-push range audit over origin..HEAD ---------------
+push_repo() { # fresh repo with a local bare origin; seed pushed
+  n=$((n + 1))
+  local dir="$TMP/push$n"
+  mkdir -p "$dir"
+  cd "$dir"
+  git init -q
+  git config user.email test@caped.dev
+  git config user.name "caped test"
+  printf 'root\tREADME.md\tenforced\tREADME.md\n' > caped.registry
+  printf '# fixture\n\n## Requirements\n\n- %sfx no-test] Fixture requirement.\n' "$MK" > README.md
+  git add -A
+  git commit -qm seed
+  git clone -q --bare . "$dir-origin.git" >/dev/null 2>&1
+  git remote add origin "$dir-origin.git"
+  git push -q origin HEAD
+  git remote set-head origin -a >/dev/null 2>&1 || true
+}
+
+run_push() {
+  set +e
+  POUT="$(bash "$CAPED" check push 2>&1)"; PRC=$?
+  set -e
+}
+
+expect_push_error() { # <name> <word>
+  local name="$1" word="$2"
+  if [ "$PRC" -ne 1 ]; then bad "$name — expected exit 1, got $PRC: $POUT"
+  elif printf '%s' "$POUT" | grep -q "$word"; then ok "$name"
+  else bad "$name — failed, but the report lacks '$word': $POUT"; fi
+}
+
+# A new requirement definition inside a fileless contract. [#adhoc-id]
+push_repo
+echo x >> notes.txt; git add notes.txt
+git commit -qm 'адхок с новым требованием
+
+тело: решили добавить правило.
+
+Adhoc: hotfix-norm
+Behavior: contract
+Spec: README.md'
+cat >> README.md <<EOF
+- "$MK"new-rule] Brand new requirement.
+EOF
+git add README.md
+git commit -qm 'адхок вводит требование в спек
+
+тело: новое правило прямо в адхоке.
+
+Adhoc: hotfix-norm
+Behavior: contract
+Spec: README.md'
+run_push
+expect_push_error 'push: new requirement in a fileless contract fails [#adhoc-id]' 'introduces requirement'
+
+# Adhoc: <name> appearing 3+ times in the range. [#adhoc-id]
+push_repo
+for i in 1 2 3; do
+  echo "n$i" >> notes.txt; git add notes.txt
+  git commit -qm "адхок $i\n\nтело: кластерное решение $i.\n\nAdhoc: fix-run\nBehavior: contract\nSpec: README.md"
+done
+run_push
+expect_push_error 'push: Adhoc cluster of 3 is flagged [#adhoc-id]' 'materialise changes/fix-run.md'
+
+# A single well-formed fileless contract passes clean. [#adhoc-id]
+push_repo
+echo x >> notes.txt; git add notes.txt
+git commit -qm 'один адхок\n\nтело: одно решение, всё в порядке.\n\nAdhoc: one-off\nBehavior: contract\nSpec: README.md'
+run_push
+if [ "$PRC" -eq 0 ]; then ok 'push: single named adhoc passes [#adhoc-id]'
+else bad "push clean failed: $POUT"; fi
+
+
 echo
 echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ]

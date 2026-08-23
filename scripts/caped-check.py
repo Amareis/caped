@@ -165,7 +165,73 @@ def check_entity_req_form(f, rel, errors):
             )
 
 
+def unpushed_range():
+    """origin..HEAD if it exists, else None."""
+    r = subprocess.run(["git", "rev-parse", "--verify", "origin/HEAD"], capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+def push_check(argv):
+    """Pre-push range audit over origin..HEAD (advisory in v0). [#adhoc-id]
+
+    Errors:
+      a fileless contract (Behavior: contract without Change:) introduces or
+        removes a requirement definition (a '- [#<slug>]' bullet) in an
+        enforced spec file — new requirements live in a filed change
+      an Adhoc: name appears 3+ times in the range — the cluster must be
+        materialised as a real change file (messages move into its Provenance)
+    """
+    base = unpushed_range()
+    if base is None:
+        print("caped check push: no origin/HEAD — set it up (git push --set-upstream origin HEAD), or nothing to compare against")
+        print("caped check push: 0 error(s)")
+        return 0
+    log = run(["git", "log", f"--format={RS}%H{FS}%B", f"{base}..HEAD"])
+    spec_paths = [s.relative_to(ROOT).as_posix() for s in enforced_spec_files()]
+    errors = []
+    clusters = {}
+    for rec in log.split(RS):
+        rec = rec.strip("\n")
+        if not rec:
+            continue
+        parts = rec.split(FS, 2)
+        if len(parts) < 3:
+            continue
+        h, body = parts
+        if not re.search(r"^Behavior:\s*contract\s*$", body, re.M):
+            continue
+        if re.search(r"^Change:\s*\S+\s*$", body, re.M):
+            continue  # filed changes are guarded per-commit by the hook
+        m = re.search(r"^Adhoc:\s*(\S+)\s*$", body, re.M)
+        if m:
+            clusters[m.group(1)] = clusters.get(m.group(1), 0) + 1
+        changed = run(["git", "diff-tree", "--name-only", "-r", h]).splitlines()
+        for rel in spec_paths:
+            if rel not in changed:
+                continue
+            diff = run(["git", "diff", f"{h}^", h, "--", rel])
+            added = re.findall(r"^\+[-*]\s+\[#([a-z0-9][a-z0-9-]*)(?: (?:no-test|dump))*\]", diff, re.M)
+            removed = re.findall(r"^-[-*]\s+\[#([a-z0-9][a-z0-9-]*)(?: (?:no-test|dump))*\]", diff, re.M)
+            if added:
+                errors.append(
+                    f"{h[:8]}: fileless contract introduces requirement(s) {', '.join('#' + s for s in added)} in {rel} — new requirements live in a filed change, not an adhoc"
+                )
+            if removed:
+                errors.append(
+                    f"{h[:8]}: fileless contract removes requirement(s) {', '.join('#' + s for s in removed)} from {rel} — contract-wide removals live in a filed change"
+                )
+    for name, n in clusters.items():
+        if n >= 3:
+            errors.append(f"Adhoc: {name} appears {n} time(s) in the range — materialise changes/{name}.md from the commit messages")
+    for e in errors:
+        print(f"error {e}")
+    print(f"caped check push: {len(clusters)} adhoc id(s), {len(errors)} error(s)")
+    return 1 if errors else 0
+
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "push":
+        return push_check(sys.argv[2:])
     errors = []
     live, born, archived, alias = known_entities()
     known = live | born | archived

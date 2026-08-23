@@ -218,6 +218,10 @@ COMMANDS
                           section must exist, every bullet in it starts with a
                           [#<slug>] marker, marker bullets outside it are rejected
                           [#req-form]. Errors fail with a fix instruction.
+                          caped check push — pre-push range audit (origin..HEAD):
+                          new/removed requirement definitions inside fileless
+                          contracts and Adhoc: clusters of 3+ commits are errors
+                          [#adhoc-id]
   caped trace         — requirement<->test marker balance: defs are
                           slug-first bullets ('- [#<slug>] ...') in enforced
                           spec files (a marker quoted in prose is NOT a def),
