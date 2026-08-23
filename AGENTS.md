@@ -16,3 +16,7 @@ suite blocks the archive. These are the tool's own tests: there is deliberately 
 Developing the tool itself (not relevant to adopting repos): the tool's interface texts —
 the rules dump, this stub, hook messages, command output — are written in English; specs
 (root README, ideas/changes) are in the project's language (Russian here).
+The rules dump is project-neutral by design ([#dump-neutrality] in the root README): only
+portable working rules and the tool's identity belong there — this repo's history,
+rationale and roadmap stay in the README. When reviewing the dump for gaps, project
+narrative missing from it is the neutrality boundary, not a hole.
