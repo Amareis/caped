@@ -264,7 +264,7 @@ git commit -qm 'адхок с новым требованием
 Adhoc: hotfix-norm
 Behavior: contract
 Spec: README.md'
-printf '%s\n' '- %snew-rule] Brand new requirement.' "$MK" >> README.md
+printf -- '- %snew-rule] Brand new requirement.\n' "$MK" >> README.md
 git add README.md
 git commit -qm 'адхок вводит требование в спек
 
