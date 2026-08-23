@@ -21,8 +21,10 @@
 # `Change: <name>` requires changes/<name>.md to exist (except `Change: init` and
 # the archival commit itself); `Archives: <name>` requires the deletion in the same commit.
 #
-# A fileless `Behavior: contract` (no Change:) is an adhoc decision and must carry
-# its rationale in the commit body. All violations (events + caps) are reported
+# A fileless `Behavior: contract` (no Change:) is an adhoc decision: it must carry
+# both an `Adhoc: <name>` trailer (the commit messages ARE the change doc; commits
+# sharing the name form one change) and its rationale in the body.
+# All violations (events + caps) are reported
 # in one aggregated message. Overlapping registry prefixes: longest prefix wins.
 #
 # Registry: caped.registry at the repo root, one line per capability:
@@ -54,6 +56,7 @@ fi
 IDEA="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Idea: //p' | head -1 || true)"
 CHANGE="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Change: //p' | head -1 || true)"
 ARCHIVES="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Archives: //p' | head -1 || true)"
+ADHOC="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Adhoc: //p' | head -1 || true)"
 
 EVENT_ERRORS=""
 err() { EVENT_ERRORS="${EVENT_ERRORS}$1
@@ -136,13 +139,16 @@ if [ -n "$CAP_NAME" ]; then
                 if [ -z "$SPEC_TRAILER" ] && ! printf '%s\n' "$CHANGED" | grep -qx "$CAP_SPEC"; then
                     err "Behavior: contract needs a Spec: trailer or a change to $CAP_SPEC in the commit"
                 fi
-                # Fileless contract (no Change:) is an adhoc decision: the commit body
-                # must carry the rationale — subject and the actual trailer block
-                # (as parsed by git, not just trailer-LOOKING lines) don't count.
+                # Fileless contract (no Change:) is an adhoc decision: it needs an
+                # Adhoc: <name> trailer (the messages ARE the change doc; a shared name
+                # clusters the commits into one change) and a rationale body — subject
+                # and the actual trailer block (as parsed by git, not just trailer-LOOKING
+                # lines) don't count.
                 TRAILER_BLOCK="$(git interpret-trailers --only-trailers "$MSG_FILE" || true)"
                 BODY="$(tail -n +2 "$MSG_FILE" | grep -vxF -f <(printf '%s\n' "$TRAILER_BLOCK") | sed '/^#/d; /^[[:space:]]*$/d' || true)"
-                if [ -z "$CHANGE" ] && [ -z "$BODY" ]; then
-                    err "fileless contract (no Change:) is an adhoc decision — the commit body must carry the mini-provenance (what, why, on what grounds)"
+                if [ -z "$CHANGE" ]; then
+                    [ -n "$ADHOC" ] || err "fileless contract (no Change:) is an adhoc decision — add a trailer: Adhoc: <name> (the commit messages ARE the change doc; commits sharing the name form one change)"
+                    [ -n "$BODY" ] || err "fileless contract (no Change:) is an adhoc decision — the commit body must carry the mini-provenance (what, why, on what grounds)"
                 fi
                 ;;
             *)

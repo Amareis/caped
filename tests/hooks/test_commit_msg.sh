@@ -80,10 +80,13 @@ expect_accept 'contract with the spec file in the commit (no trailer) [#spec-tra
 
 echo 'fn a6() {}' >> src/a.rs; git add src/a.rs
 msg 'adhoc src\n\nBehavior: contract\nSpec: README.md\n'
-expect_reject 'fileless contract without body [#adhoc-body]'
+expect_reject 'fileless contract without Adhoc trailer [#adhoc-id]'
 
-msg 'adhoc src\n\nFix X because Y; grounds: Z.\n\nBehavior: contract\nSpec: README.md\n'
-expect_accept 'fileless contract with rationale body [#adhoc-body]'
+msg 'adhoc src\n\nAdhoc: fix-src\n\nBehavior: contract\nSpec: README.md\n'
+expect_reject 'fileless contract with Adhoc but no body [#adhoc-body]'
+
+msg 'adhoc src\n\nFix X because Y; grounds: Z.\n\nAdhoc: fix-src\nBehavior: contract\nSpec: README.md\n'
+expect_accept 'fileless contract with Adhoc + rationale body [#adhoc-id]'
 
 echo 'note' >> notes.txt; git add notes.txt
 msg 'free zone note\n'

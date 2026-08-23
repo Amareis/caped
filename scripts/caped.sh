@@ -98,8 +98,14 @@ ADHOC (fileless) DECISIONS
 
   A small, already-discussed, 1–2-commit decision may live entirely in its
   commits — no ideas/changes file: Behavior: contract|internal (+ Spec: on
-  contract) with the rationale in the commit BODY [#adhoc-body] (enforced: a fileless
-  contract requires a non-empty body — subject and trailers don't count).
+  contract) with the rationale in the commit BODY [#adhoc-body] (enforced: a
+  fileless contract requires a non-empty body — subject and trailers don't
+  count). A fileless contract must also carry a name: the trailer
+  Adhoc: <name> [#adhoc-id] — the commit messages ARE the change's document,
+  commits sharing the name cluster into ONE change, and a name may continue
+  an archived change (a missed piece found after the fact). A cluster of
+  3+ commits on one name must be materialised as a real change file (the
+  messages move into its Provenance) — `caped check push` flags it.
   A file is required when the work is > 2 commits, opens a new decision
   territory, is disputed or undiscussed, spans several caps, or carries open
   questions. Drift review watches the share of fileless contract commits.
