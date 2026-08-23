@@ -30,6 +30,12 @@ spawned_from: fileless-adhoc
   поверхность адхоку не нужна, решения точечные; виртуальный документ собирается из
   месседжей с общим `Adhoc:`-трейлером. Следствие для метрик — классификация точная по
   трейлеру, см. {#git-text-metrics}.
+- O1 решён при реализации: `Adhoc:` обязателен на fileless-contract (contract, хук); internal — не
+  энфорсится (именованные цепочки фиксов — конвенция, не правило).
+- O2 решён частично: команда `caped check push` в v0, advisory, диапазон origin..HEAD; шим pre-push
+  из init и каденция пуша — промоут в adhoc-verify.
+- O5 закрыт: требование «адхок-выдержка» реализовано в render-format (acf7b98); полный док кластера —
+  территория change-show (реконструкция сущности), контракт держит req 2.
 
 ## Rejected alternatives
 
@@ -55,8 +61,20 @@ spawned_from: fileless-adhoc
 
 ## Open questions
 
-- O1: internal-адхоки — `Adhoc:` обязателен только на contract или опционален на internal (именованные цепочки фиксов)? Рекомендация: contract — обязательно, internal — опционально (полезно для кластеров фиксов, не нагружает багфиксы).
-- O2: pre-push — шим через init (автоматически на границе пуша) или ручная команда `caped check push` (одноагентные репо, дешёвый skip)? Рекомендация: шим + advisory-first; ручная команда остаётся для явного skip.
-- O3: верификация пересборки — «каждый id диапазона жив/материализован» по текущему состоянию (просто) или маппинг до/после через reflog (полный след)? Рекомендация: текущее состояние машиной, reflog — человеку.
-- O4: мультиагентный пуш — два агента в одном диапазоне: merge-исключение как в хуке? Кластеры по id чек всё равно видит.
-- O5: выдержка тел адхоков в самой history-секции — РЕШЕНО передачей (первый прогон [#territory-handoff], 2026-08-23): требование «адхок-выдержка» добавлено в changes/render-format.md (req 11); полный док — `caped change show <id>` остаётся здесь (req 2). Направление подтверждено рекомендацией: выдержка — формату history (render-format), полный док — кластеру (adhoc-lifecycle).
+- O1: РЕШЁН — обязателен на fileless-contract (contract); internal не требует (см. Decisions).
+- O2: РЕШЁН частично — `caped check push` реализован (advisory); шим pre-push и каденция — в adhoc-verify.
+- O3: ПРОМОУТ в adhoc-verify — верификация «id не пропал молча» по текущему состоянию; reflog — человеку.
+- O4: ПРОМОУТ в adhoc-verify — merge-исключение мультиагентных пушей.
+- O5: РЕШЁН передачей в render-format (реализовано, acf7b98); полный док кластера — change-show.
+
+## Tasks (статус v0)
+
+- [x] Трейлер `Adhoc: <name>` на fileless-contract: хук + дамп + README-норма `#adhoc-id` + hook-сценарии.
+- [x] Рендер: кластеры по Adhoc: id, эксклюзия ренейм-событий, метрика «N id, M кластеров >2» в history.
+- [x] `caped check push`: new-def в fileless-контракте и кластер ≥3 (advisory, origin..HEAD) + check-сценарии.
+- [x] План: секция `-- recent fileless decisions --` со Spec: (survey render-first) + render-сценарий.
+- [ ] Пересборка с верификацией «id не пропал молча» — adhoc-verify.
+- [ ] Расширения push-чека: (в) контракт без сценариев, (г) range-level trace, (е) handoff-след — adhoc-verify.
+- [ ] Шим pre-push из init — adhoc-verify.
+- [ ] secretary-e2e: агент ставит `Adhoc:` при fileless-contract; передача находки правкой цели — adhoc-verify.
+- [ ] Полный док кластера (`caped change show <name>`) — change-show.
