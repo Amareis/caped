@@ -17,7 +17,7 @@ spawned_from: render
 
 ## Requirements
 
-1. JSON-режим: `caped render <view> --json` — стабильные ключи (name, status, phase, priority, deps[], spawned_from, last_commit{date,hash,subject}, age_days, stalled, blocked); text остаётся дефолтом; --write не трогаем.
+1. JSON-режим: `caped render <view> --json` — вложенный объект со стабильными ключами (name, status, phase, priority, deps[], spawned_from, last_commit{date,hash,subject}, age_days, stalled, blocked); text остаётся дефолтом; `--write` материализует и JSON-файлы тоже (см. O2).
 2. План, `last:`: добавить сабджект последнего коммита (`git log -1 --format=%s` — вызов уже есть) — `last: 2026-08-23 e109fed «в работу» (0d ago)`.
 3. План: маркер `BLOCKED (dep unarchived)` для идей, чьи depends_on не заархивированы (архив — из `Archives:`-трейлеров, тот же код, что в caped-check); группировка/сортировка по phase, затем priority.
 4. История: живой статус неархивированных сущностей из файловой системы (`ideas/<name>.md` → idea, `changes/<name>.md` → in work) вместо «(in work or idea)» — дополнение человека: «никто же не мешает быстро файлы чекнуть сразу».
@@ -27,7 +27,10 @@ spawned_from: render
 
 ## Decisions
 
-—
+- O1: вложенный JSON-объект (не плоские ключи); схема одна на plan и будущий `render events` (multiagent-events) — общий генератор полей.
+- O2: `--write` пишет И JSON-файлы тоже (`.caped/plan.json` и т.п. рядом с markdown) — решение человека против рекомендации агента (тот предлагал JSON только в stdout): машиночитаемый дамп в артефактах пригодится, «если write путь правильно сделан, он и так это сделает без переписывания кода».
+- O3: blocked — только от depends_on-гейта (незархивированная зависимость); stalled — отдельный флаг, в blocked не смешивается.
+- O4: состояния-расхождения в history (рождена по `Idea:`, файла нет, `Archives:` нет) — маркер «?» наружу: дрейф обязан быть виден, drift-review смотрит историю.
 
 ## Rejected alternatives
 
@@ -39,6 +42,7 @@ spawned_from: render
 
 - «По формату вывода рендера есть идеи?»
 - «Запиши, еще кстати лично мое дополнение: session-export  2026-08-22 bdf19e09 - (in work or idea) — Вот это "или" странная фигня - так-то никто же не мешает быстро файлы чекнуть сразу чтобы понять где и что оно сейчас»
+- O2: «write с джейсоном кстати может и пригодится — легкий способ машиночитаемого дампа в артефакты; можно стдаут редиректить, но если write путь правильно сделан, то он и так это сделает без переписывания кода»
 
 Додумано агентом (с основаниями):
 
