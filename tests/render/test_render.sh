@@ -177,6 +177,42 @@ set -e
 if [ "$RC" -eq 2 ]; then ok 'unknown view exits 2 [#render-stdout]'
 else bad "unknown view exit $RC, want 2: $OUT"; fi
 
+# --- adhoc decisions: fileless contract commits listed in history -----------
+new_repo
+echo a >> README.md; git add -A
+commit_msg <<'EOF'
+адхок: решение без файла
+
+Behavior: contract
+Spec: README.md
+EOF
+echo b >> README.md; git add -A
+commit_msg <<'EOF'
+внутренняя правка
+
+Behavior: internal
+EOF
+echo c >> README.md; git add -A
+commit_msg <<'EOF'
+контракт внутри чейнджа
+
+Behavior: contract
+Change: alpha
+EOF
+expect_out 'history with adhoc commits succeeds [#render-history-adhoc]' history
+case "$OUT" in
+  *"-- adhoc decisions"*"адхок: решение без файла"*) ok 'fileless contract listed [#render-history-adhoc]' ;;
+  *) bad "fileless contract missing: $OUT" ;;
+esac
+case "$OUT" in
+  *"внутренняя правка"*) bad "internal leaked into history: $OUT" ;;
+  *) ok 'internal commit not listed [#render-history-adhoc]' ;;
+esac
+case "$OUT" in
+  *"контракт внутри чейнджа"*) bad "change-bound contract leaked into adhoc: $OUT" ;;
+  *) ok 'change-bound contract not in adhoc section [#render-history-adhoc]' ;;
+esac
+
 echo
 echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ]

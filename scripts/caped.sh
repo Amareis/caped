@@ -171,6 +171,9 @@ COMMANDS
                           materialises them into .caped/ (gitignored)
                           [#render-write], --clean removes it [#render-clean];
                           history is rebuilt from git trailers [#render-history]
+                          and also lists fileless adhoc contract commits
+                          (Behavior: contract without Change:)
+                          [#render-history-adhoc]
 
 A hook error is an instruction: read it and fix the commit accordingly.
 EOF

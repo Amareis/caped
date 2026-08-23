@@ -5,7 +5,9 @@ Views:
   plan     — in-work changes (with last-commit age, stalled marked) and ideas
              from frontmatter, ideas grouped by priority
   history  — the change archive reconstructed from git trailers (Idea: born,
-             Archives: archived) with dates, commits and summaries
+             Archives: archived) with dates, commits and summaries, plus the
+             fileless adhoc contract commits (Behavior: contract without a
+             Change: trailer)
   coverage — tracked files vs caped.registry (enforced/legacy/declared/free,
              longest prefix wins)
 
@@ -138,6 +140,30 @@ def archived_summary(name, commit):
     return parse_frontmatter_text(res.stdout).get("summary", "")
 
 
+def adhoc_events():
+    """Fileless contract commits: Behavior: contract without a Change: trailer.
+
+    Newest first, straight from git log. [#render-history-adhoc]
+    """
+    log = run(["git", "log", "--date=short", f"--format={RS}%H{FS}%ad{FS}%B"])
+    out = []
+    for rec in log.split(RS):
+        rec = rec.strip("\n")
+        if not rec:
+            continue
+        parts = rec.split(FS, 2)
+        if len(parts) < 3:
+            continue
+        h, d, body = parts
+        if not re.search(r"^Behavior:\s*contract\s*$", body, re.M):
+            continue
+        if re.search(r"^Change:\s*\S+\s*$", body, re.M):
+            continue
+        subject = body.strip().split("\n", 1)[0]
+        out.append((d, h[:8], subject))
+    return out
+
+
 def rename_aliases():
     """Entity renames (R ideas/A.md -> ideas/B.md) — history stitches old names to new."""
     log = run(["git", "log", f"--format={RS}%H", "--name-status", "-M", "--", "ideas", "changes"])
@@ -187,6 +213,12 @@ def view_history():
         old = f" (was: {b[2]})" if b and b[2] != n else ""
         summary = archived_summary(n, a[2]) if a else ""
         lines.append(f"  {n:<22} {bcell:<19} {acell:<19} {summary}{old}")
+    adhoc = adhoc_events()
+    lines.append("-- adhoc decisions (fileless contract commits) --")
+    if not adhoc:
+        lines.append("  (none)")
+    for d, h, subject in adhoc:
+        lines.append(f"  {d} {h}  {subject}")
     return "\n".join(lines)
 
 
