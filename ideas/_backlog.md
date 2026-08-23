@@ -17,7 +17,7 @@ spawned_from: null
 
 - Конфиг-слой caped (языковые списки маркеров requirement-format O3/O2, пути по умолчанию, предпочтения плагина) — «конфиги сами будущая идея» | from question-lifecycle | 2026-08-23
 - События состояний проверок (trace-red/check-red) как типы ленты — возможная точка расширения caped-event-hooks, потребитель при появлении | from caped-event-hooks | 2026-08-23
-- Команда `caped archive <name>` — удобный слой депозита отложенных OQ в _backlog + `git rm` + коммит архивации; фаза 2 question-lifecycle, после гейта | from question-lifecycle | 2026-08-23
+- ПРОМОУТ: команда `caped archive` (автодепозит OQ в _backlog + гейт в команде) → идея `lifecycle-cmds` (2026-08-23, расширена idea|work) | from question-lifecycle | 2026-08-23
 - ПРОМОУТ: tool-updated и версия тула (встроенный `render changelog` + версия-константа + авгоген по событию) → идея `tool-changelog` (2026-08-23) | from caped-event-hooks | 2026-08-23
 - ПРОМОУТ: Команда «caped version» (печать версии-строки из бандла + --path) → идея `caped-version` (2026-08-23) | from tool-changelog | 2026-08-23
 - Инцидент 2026-08-23 (архив change-show при красном гейте): сломанный сценарий в той же правке; причин без проверки в одной цепочке с run-tests. Урок: гейт НЕ гонится в одной команде с архивом — красный ДО архива = стоп и фикс | from session-103 (оценщик) | 2026-08-23
