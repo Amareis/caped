@@ -31,7 +31,8 @@ LIFECYCLE (each event is a separate atomic commit)
                 M ideas/<name>.md carries the same Idea: <name> trailer and its
                 own commit — exemptions: ideas/_backlog.md (service pseudo-idea:
                 deposits and line maintenance are not idea edits; they emit a
-                dedicated backlog-edited feed event [#idea-edit-event]) and
+                dedicated backlog-edited feed event [#idea-edit-event] unless an
+                archive deposit already dominates as `archived`) and
                 idea-rename commits (mv + referrer fixes, governed by the rename
                 rule). A commit touching several idea files (A/M, minus _backlog
                 and rename commits) is rejected with an honest "one idea per
