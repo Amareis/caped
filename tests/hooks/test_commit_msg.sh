@@ -124,6 +124,12 @@ echo 'n7' >> notes.txt; git add notes.txt
 printf 'escaped work\n\nAgent: kimi-cli/xy@caped\n' > .caped-test-msg
 expect_accept '@<home> escape passes [#residency-check]'
 
+# Headers are parsed as JSON: serializer spacing (`"agent": "dsh/s2"`) is fine.
+printf '{"v":1,"session":"session-s2-1111","agent": "dsh/s2"}\n' > .caped/sessions/session-s2-1111.jsonl
+echo 'n8' >> notes.txt; git add notes.txt
+printf 'spaced work\n\nAgent: dsh/s2\n' > .caped-test-msg
+expect_accept 'JSON-serializer spacing passes residency [#residency-check]'
+
 # --- Registry: longest prefix wins ------------------------------------------
 
 # A longer prefix shadows the shorter one for paths under it.

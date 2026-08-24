@@ -78,14 +78,39 @@ elif printf '%s' "$AGENT" | grep -q '[[:space:]]'; then
 fi
 # Residency (rollout, warn-mode): a session id (not human, no @<home> escape)
 # must have a presence file with this id in .caped/sessions/ — the plugin writes
-# those only in the agent's HOME repo. While NO session file in this repo carries
-# an agent field, the plugin is not live here and the check stays off. The only
-# door into a foreign repo is `caped relay`. [#residency-check]
+# those only in the agent's HOME repo. Headers are parsed as JSON (any serializer
+# spacing works, no compact-byte dependency); while NO session in this repo
+# carries an agent field, the plugin is not live here and the check stays off.
+# The only door into a foreign repo is `caped relay`. [#residency-check]
 if [ -n "$AGENT" ] && [ "$AGENT" != "human" ] && ! printf '%s' "$AGENT" | grep -q '@'; then
     SESS="$ROOT/.caped/sessions"
-    if [ -d "$SESS" ] && grep -l '"agent"' "$SESS"/*.jsonl >/dev/null 2>&1; then
-        if ! grep -q '"agent":"'"$AGENT"'"' "$SESS"/*.jsonl 2>/dev/null; then
-            err "Agent: $AGENT has no resident session in .caped/sessions/ — this is not your repo: use 'caped relay' from your home, or subscribe $AGENT@<home>"
+    if [ -d "$SESS" ]; then
+        if python3 - "$SESS" "$AGENT" <<'PY' >/dev/null 2>&1
+import json, os, sys
+d, aid = sys.argv[1], sys.argv[2]
+saw_agent = False
+for fn in os.listdir(d):
+    if not fn.endswith(".jsonl"):
+        continue
+    try:
+        with open(os.path.join(d, fn)) as f:
+            hdr = json.loads(f.readline())
+    except Exception:
+        continue
+    if not isinstance(hdr, dict) or hdr.get("agent") is None:
+        continue
+    saw_agent = True
+    if hdr["agent"] == aid:
+        sys.exit(0)  # resident
+sys.exit(1 if saw_agent else 2)  # 1 = plugin live, not resident; 2 = plugin not live
+PY
+        then
+            : # resident session found
+        else
+            rc=$?
+            if [ "$rc" -eq 1 ]; then
+                err "Agent: $AGENT has no resident session in .caped/sessions/ — this is not your repo: use 'caped relay' from your home, or subscribe $AGENT@<home>"
+            fi
         fi
     fi
 fi
