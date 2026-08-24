@@ -329,7 +329,12 @@ COMMANDS
                           is withdrawn (Archives:) unless --keep; UNCOMMITTED ideas
                           are direct-sent (only the neighbor commit, zero home
                           commits); the arrival is a `relayed` feed event
-                          (Agent: <id>@<home> mark). [#neighbor-relay]
+                          (Agent: <id>@<home> mark). The delivered copy is
+                          normalized to the canonical section set (missing
+                          sections appended empty; the sender's file is NOT
+                          touched) and the receiver's caped check runs BEFORE
+                          the neighbor commit — a red check refuses the relay
+                          ('canonical schema not achieved'). [#neighbor-relay]
   caped render [view] — derived views (plan, history, coverage, reqs,
                           changelog, events, agents); top-level aliases: caped plan |
                           history | coverage | reqs | changelog. Printed to
