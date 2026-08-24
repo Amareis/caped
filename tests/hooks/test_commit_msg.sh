@@ -136,6 +136,9 @@ expect_reject 'M ideas/x.md without Idea trailer [#idea-edit]'
 msg 'edit idea x\n\nIdea: x\n'
 expect_accept 'idea edit with Idea: x [#idea-edit]'
 
+echo '- idea backlog' > ideas/_backlog.md; git add ideas/_backlog.md
+msg 'идея _backlog\n\nIdea: _backlog\n'
+expect_accept 'idea _backlog born (setup) [#idea-edit]'
 echo '- backlog note' >> ideas/_backlog.md; git add ideas/_backlog.md
 msg 'twik in _backlog\n'
 expect_accept 'M ideas/_backlog.md needs no Idea trailer [#idea-edit]'
