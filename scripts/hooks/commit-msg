@@ -59,6 +59,7 @@ IDEA="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Idea: //p' | head -1 || true)"
 CHANGE="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Change: //p' | head -1 || true)"
 ARCHIVES="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Archives: //p' | head -1 || true)"
 ADHOC="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Adhoc: //p' | head -1 || true)"
+IDEAS_ALL="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Idea: //p' || true)"
 
 EVENT_ERRORS=""
 err() { EVENT_ERRORS="${EVENT_ERRORS}$1
@@ -68,6 +69,16 @@ NS_ALL="$(git diff --cached --name-status -M)"
 # An idea-rename commit (mv + referrer fixes across ideas/) is governed by the
 # rename rule, not the edit rule — its M ideas/*.md need no Idea: trailer.
 RENAMES="$(printf '%s\n' "$NS_ALL" | grep -E '^R[0-9]*\tideas/[^\t]*\.md\tideas/[^\t]*\.md$' || true)"
+# Multi-idea commits (A or M of >=2 idea files, minus _backlog and rename
+# commits) are two semantic events — reject with an honest "split" message,
+# not a lying per-file "trailer required" (the trailer may be present, just not
+# first). Single-idea checks below match against ALL Idea: trailers.
+IDEA_TOUCHES="$(printf '%s\n' "$NS_ALL" | grep -E '^(A|M)\tideas/[^\t]+\.md$' | grep -Ev $'^(A|M)\tideas/_backlog\.md$' || true)"
+IDEA_COUNT="$(printf '%s\n' "$IDEA_TOUCHES" | sed '/^$/d' | wc -l | tr -d ' ')"
+[ -n "$IDEA_COUNT" ] || IDEA_COUNT=0
+if [ "$IDEA_COUNT" -gt 1 ] && [ -z "$RENAMES" ]; then
+    err "commit touches $IDEA_COUNT idea files — one idea per commit (one semantic event = one commit): split into separate commits"
+fi
 
 while IFS=$'\t' read -r status p1 p2; do
     case "$status" in
@@ -75,7 +86,9 @@ while IFS=$'\t' read -r status p1 p2; do
             case "$p1" in
                 ideas/*.md)
                     want="$(basename "$p1" .md)"
-                    [ "$IDEA" = "$want" ] || err "new idea $p1 — trailer required: Idea: $want"
+                    if ! printf '%s\n' "$IDEAS_ALL" | grep -qxF "$want"; then
+                        err "new idea $p1 — trailer required: Idea: $want"
+                    fi
                     ;;
                 changes/*.md)
                     [ "$CHANGE" = "init" ] || err "change $p1 added directly — taking an idea into work is a clean 'git mv ideas/<name>.md changes/<name>.md' with trailer Change: <name>"
@@ -102,7 +115,9 @@ while IFS=$'\t' read -r status p1 p2; do
                 ideas/*.md)
                     if [ -z "$RENAMES" ]; then
                         want="$(basename "$p1" .md)"
-                        [ "$IDEA" = "$want" ] || err "edit of idea $p1 — trailer required: Idea: $want (mirrors Change: on change edits; _backlog and idea-rename commits are exempt)"
+                        if ! printf '%s\n' "$IDEAS_ALL" | grep -qxF "$want"; then
+                            err "edit of idea $p1 — trailer required: Idea: $want (mirrors Change: on change edits; _backlog and idea-rename commits are exempt)"
+                        fi
                     fi
                     ;;
             esac
