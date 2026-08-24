@@ -155,6 +155,20 @@ git add ideas/r2.md
 msg 'rename r1 -> r1b with a referrer fix\n'
 expect_accept 'rename commit with referrer fix needs no Idea: [#idea-edit]'
 
+echo '- idea m1' > ideas/m1.md; git add ideas/m1.md
+msg 'add idea m1\n\nIdea: m1\n'
+expect_accept 'idea m1 born (setup for multi-idea) [#idea-edit]'
+echo '- idea m2' > ideas/m2.md; git add ideas/m2.md
+msg 'add idea m2\n\nIdea: m2\n'
+expect_accept 'idea m2 born (setup for multi-idea) [#idea-edit]'
+echo '- edit' >> ideas/m1.md; echo '- edit' >> ideas/m2.md; git add ideas/m1.md ideas/m2.md
+msg 'edit m1 and m2\n\nIdea: m1\nIdea: m2\n'
+expect_reject_matching 'two ideas in one commit — honest split error [#idea-edit]' 'one idea per commit'
+git reset -q; git checkout -q -- ideas/m2.md  # drop the rejected m2 edit, keep only m1
+git add ideas/m1.md
+msg 'edit m1 (trailer not first)\n\nIdea: ghost\nIdea: m1\n'
+expect_accept 'single idea edit passes when its Idea: is not first [#idea-edit]'
+
 # --- Events: changes/ --------------------------------------------------------
 
 echo '- change y' > changes/y.md; git add changes/y.md
