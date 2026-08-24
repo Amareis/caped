@@ -684,7 +684,8 @@ def _entity_commits(rname):
         if body and re.search(r"^Archives:\s*" + rx + r"\s*$", body, re.M):
             typ = "archive"
         elif body and re.search(r"^Idea:\s*" + rx + r"\s*$", body, re.M):
-            typ = "birth"
+            ns = run(["git", "show", "--name-status", "-M", "--format=", h], check=False)
+            typ = "birth" if re.search(r"^A\tideas/" + rx + r"\.md$", ns, re.M) else "edit"
         elif body and re.search(r"^Change:\s*" + rx + r"\s*$", body, re.M):
             ns = run(["git", "show", "--name-status", "-M", "--format=", h], check=False)
             typ = "into work" if re.search(r"^R\d*\tideas/" + rx + r"\.md\tchanges/" + rx + r"\.md$", ns, re.M) else "work"
