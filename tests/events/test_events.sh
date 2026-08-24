@@ -77,6 +77,21 @@ Behavior: contract
 Spec: README.md
 FIX
 
+printf -- '---\nname: ex2\nsummary: events fixture 2\n---\n' > ideas/ex2.md
+git add ideas/ex2.md
+git commit -qF - <<'FIX'
+идея ex2
+
+Idea: ex2
+FIX
+echo tweak >> ideas/ex2.md
+git add ideas/ex2.md
+git commit -qF - <<'FIX'
+правка идеи ex2
+
+Idea: ex2
+FIX
+
 OUT="$(bash "$CAPED" events)"
 case "$OUT" in
   *'idea-born'*'ex1'*) ok 'idea-born event in the feed [#event-feed]' ;;
@@ -93,6 +108,10 @@ esac
 case "$OUT" in
   *'"t":"adhoc"'*) ok 'adhoc event in the feed [#event-feed]' ;;
   *) bad "adhoc missing: $OUT" ;;
+esac
+case "$OUT" in
+  *'idea-edited'*'ex2'*) ok 'idea-edited event in the feed [#idea-edit-event]' ;;
+  *) bad "idea-edited missing: $OUT" ;;
 esac
 
 N="$(wc -l < .caped/events/feed.jsonl)"
