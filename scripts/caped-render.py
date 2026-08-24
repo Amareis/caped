@@ -81,17 +81,25 @@ ROOT = Path(run(["git", "rev-parse", "--show-toplevel"]).strip())
 
 
 def parse_frontmatter_text(text):
-    """Flat 'key: value' frontmatter; no YAML library on purpose."""
+    """Flat 'key: value' frontmatter with YAML folds; no YAML library on purpose."""
     if not text.startswith("---"):
         return {}
     end = text.find("\n---", 3)
     if end == -1:
         return {}
     fm = {}
+    key = None
     for line in text[3:end].strip().splitlines():
         m = re.match(r"^(\w+):\s*(.*)$", line)
         if m:
-            fm[m.group(1)] = m.group(2).strip()
+            key = m.group(1)
+            fm[key] = m.group(2).strip()
+        elif key is not None and line[:1] in (" ", "\t"):
+            # YAML fold: the field's value continues on indented lines
+            # (summary: with the text on the next line is valid YAML).
+            fm[key] = (fm[key] + " " + line.strip()).strip()
+        else:
+            key = None
     return fm
 
 
