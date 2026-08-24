@@ -127,6 +127,31 @@ expect_reject 'A ideas/x.md with a wrong Idea trailer [#idea-birth]'
 msg 'add idea x\n\nIdea: x\n'
 expect_accept 'idea born with Idea: x [#idea-birth]'
 
+# --- Events: idea edits -------------------------------------------------------
+
+echo '- edit' >> ideas/x.md; git add ideas/x.md
+msg 'edit idea x\n'
+expect_reject 'M ideas/x.md without Idea trailer [#idea-edit]'
+
+msg 'edit idea x\n\nIdea: x\n'
+expect_accept 'idea edit with Idea: x [#idea-edit]'
+
+echo '- backlog note' >> ideas/_backlog.md; git add ideas/_backlog.md
+msg 'twik in _backlog\n'
+expect_accept 'M ideas/_backlog.md needs no Idea trailer [#idea-edit]'
+
+echo '- idea r1' > ideas/r1.md; git add ideas/r1.md
+msg 'add idea r1\n\nIdea: r1\n'
+expect_accept 'idea r1 born (setup for rename exemption) [#idea-edit]'
+echo '- idea r2' > ideas/r2.md; git add ideas/r2.md
+msg 'add idea r2\n\nIdea: r2\n'
+expect_accept 'idea r2 born (setup for rename exemption) [#idea-edit]'
+git mv ideas/r1.md ideas/r1b.md
+echo '- refers r1b' >> ideas/r2.md
+git add ideas/r2.md
+msg 'rename r1 -> r1b with a referrer fix\n'
+expect_accept 'rename commit with referrer fix needs no Idea: [#idea-edit]'
+
 # --- Events: changes/ --------------------------------------------------------
 
 echo '- change y' > changes/y.md; git add changes/y.md
