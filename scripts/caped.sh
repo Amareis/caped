@@ -326,8 +326,9 @@ COMMANDS
                           timeline (birth/edit/into work/archive/withdrawn/adhoc,
                           each with its agent; window: last 50) [#render-events];
                           agents is the live presence view over
-                          .caped/sessions/*.jsonl (mtime + end marker)
-                          [#render-agents].
+                          .caped/sessions/*.jsonl (mtime-first: end counts only as
+                          the tail with a stale mtime; heartbeat touches the file
+                          without rows) [#render-agents].
                           The plan marks entities with unarchived depends_on as
                           BLOCKED [#render-blocked]; history is rebuilt from git
                           trailers [#render-history], reads the live status of
