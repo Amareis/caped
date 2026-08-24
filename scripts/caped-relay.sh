@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-# caped relay <neighbor> <idea> [--keep] — the ONLY door into a neighbor repo.
+# caped relay <neighbor> <idea> [--keep] [--agent <id>] — the ONLY door into a
+# neighbor repo.
 #
-# Copies ideas/<name>.md to the neighbor's ideas/ with adapted frontmatter
-# (spawned_from: null + a Handoff note), commits there with Idea: <name> (+ a
-# home-marked Agent:), then withdraws the local copy (Archives: <name>) unless
-# --keep. The neighbor's hooks (Idea:, Agent:, residency) do the enforcement.
+# Two modes, split by whether the local idea is committed:
+#   - tracked ideas/...md  — normal relay: copy+adapt, Idea: commit at the
+#     neighbor, then a local withdrawal (Archives:) unless --keep (2 home commits);
+#   - untracked ideas/...md — DIRECT send: only the neighbor's commit; the local
+#     file is removed (or kept with --keep) with NO home commits at all.
+# The sender id is REQUIRED (CAPED_AGENT or --agent; manual runs set
+# CAPED_AGENT=human explicitly — there is no default). The neighbor commit is
+# home-marked Agent: <id>@<home> + Behavior: internal (target hooks may cap paths).
 # [#neighbor-relay]
 set -euo pipefail
 
@@ -14,19 +19,25 @@ cd "$ROOT"
 die() { echo "caped relay: $*" >&2; exit 2; }
 
 keep=0
+agent=""
 args=()
-for a in "$@"; do
-  case "$a" in
+while [ "$#" -gt 0 ]; do
+  case "$1" in
     --keep) keep=1 ;;
-    *) args+=("$a") ;;
+    --agent) [ "$#" -ge 2 ] || die "--agent needs a value"; agent="$2"; shift ;;
+    *) args+=("$1") ;;
   esac
+  shift
 done
-[ "${#args[@]}" -eq 2 ] || die "usage: caped relay <neighbor> <idea> [--keep]"
+[ "${#args[@]}" -eq 2 ] || die "usage: caped relay <neighbor> <idea> [--keep] [--agent <id>]"
 nb="${args[0]}"
 name="${args[1]}"
 
 [ -f "ideas/$name.md" ] || die "no ideas/$name.md here — nothing to relay"
 [ -f caped.neighbors ] || die "no caped.neighbors — add neighbors first"
+
+agent="${agent:-${CAPED_AGENT:-}}"
+[ -n "$agent" ] || die "sender id required — no default: set CAPED_AGENT (manual: CAPED_AGENT=human) or --agent <id>"
 
 path=""
 while IFS=$'\t' read -r n p role; do
@@ -39,9 +50,9 @@ done < caped.neighbors
 [ -e "$path/ideas/$name.md" ] && die "$path/ideas/$name.md already exists at the neighbor"
 
 home="$(basename "$ROOT")"
-ours="$(git rev-parse --short HEAD)"
-agent="${CAPED_AGENT:-human}"
-[ "$agent" = "human" ] || agent="$agent@$home"   # honest foreigner mark; @home is residency-exempt
+ours="$(git rev-parse --short HEAD 2>/dev/null || echo -)"
+tracked=0
+git ls-files --error-unmatch "ideas/$name.md" >/dev/null 2>&1 && tracked=1
 
 mkdir -p "$path/ideas"
 {
@@ -56,22 +67,26 @@ git -C "$path" commit -q -F - <<EOF
 
 Idea: $name
 Behavior: internal
-Agent: $agent
+Agent: $agent@$home
 EOF
 relayed="$(git -C "$path" rev-parse --short HEAD)"
 echo "ok: relayed → $path/ideas/$name.md ($relayed)"
 
 if [ "$keep" -eq 0 ]; then
-  git rm -q "ideas/$name.md"
-  git commit -q -F - <<EOF
+  if [ "$tracked" -eq 1 ]; then
+    git rm -q "ideas/$name.md"
+    git commit -q -F - <<EOF
 снята идея $name: передана релей-идеей в $nb ($relayed)
 
 Причина: владение переехало к соседу (caped relay); ссылки резолвятся как архивные.
 
 Archives: $name
-Agent: ${CAPED_AGENT:-human}
+Agent: $agent
 EOF
-  echo "ok: local copy withdrawn (Archives: $name)"
+  else
+    rm -f "ideas/$name.md"
+  fi
+  echo "ok: local copy removed (direct mode: no home commits)"
 else
   echo "ok: kept the local copy (--keep)"
 fi

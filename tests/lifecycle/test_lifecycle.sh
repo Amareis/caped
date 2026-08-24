@@ -21,6 +21,8 @@ bash "$REPO_ROOT/scripts/caped.sh" init >/dev/null
 printf '# fixture\n\n## Requirements\n\n- plain bullet\n' > README.md
 git add -A; git commit -qm seed --no-verify
 
+export CAPED_AGENT=human
+
 mkdir -p ideas
 printf -- '---\nname: _backlog\nsummary: x\n---\n\n## Requirements\n\n- placeholder\n' > ideas/_backlog.md
 git add ideas/_backlog.md

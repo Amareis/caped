@@ -47,6 +47,13 @@ export CAPED_AGENT=dsh
 bash "$CAPED" idea moveto "relay fixture"
 bash "$CAPED" idea keeploc "relay --keep fixture"
 
+# The sender id is required — no default (user: «дефолт human не делай»).
+if env -u CAPED_AGENT bash "$CAPED" relay nb moveto >/dev/null 2>&1; then
+  bad 'relay with an unset sender id passes [#neighbor-relay]'
+else
+  ok 'sender id is required — unset CAPED_AGENT refuses [#neighbor-relay]'
+fi
+
 OUT="$(bash "$CAPED" relay nb moveto 2>&1)"
 if [ -f "$NB_DIR/ideas/moveto.md" ] && [ ! -f ideas/moveto.md ]; then
   ok 'relay moves the idea and withdraws the local copy [#neighbor-relay]'
@@ -68,6 +75,53 @@ bash "$CAPED" relay nb keeploc --keep >/dev/null
 if [ -f "$NB_DIR/ideas/keeploc.md" ] && [ -f ideas/keeploc.md ]; then
   ok '--keep keeps the local copy [#neighbor-relay]'
 else bad '--keep did not keep the local copy'; fi
+
+# Direct send: an UNCOMMITTED idea — only the neighbor's commit, no home commits.
+cat > ideas/direct1.md <<'EOF'
+---
+name: direct1
+summary: direct relay fixture
+---
+
+## Why
+
+w
+
+## Context
+
+c
+
+## Requirements
+
+t
+
+## Decisions
+
+-
+
+## Rejected alternatives
+
+-
+
+## Provenance
+
+p
+
+## Open questions
+
+-
+EOF
+PRE="$(git rev-list --count HEAD)"
+bash "$CAPED" relay nb direct1 >/dev/null
+if [ -f "$NB_DIR/ideas/direct1.md" ] && [ ! -f ideas/direct1.md ]; then
+  ok 'direct relay delivers an uncommitted idea and removes the local file [#neighbor-relay]'
+else bad 'direct relay delivery failed'; fi
+if [ "$(git rev-list --count HEAD)" = "$PRE" ]; then
+  ok 'direct relay makes no home commits [#neighbor-relay]'
+else bad 'direct relay produced home commits'; fi
+if git -C "$NB_DIR" log --format=%B -1 | grep -q '^Agent: dsh@home$'; then
+  ok 'direct relay commit is home-marked too [#neighbor-relay]'
+else bad 'direct relay commit not home-marked'; fi
 
 echo
 echo "pass=$pass fail=$fail"
