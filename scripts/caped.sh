@@ -82,6 +82,16 @@ COMMIT TRAILERS (git trailers, enforced by the commit-msg hook)
                                      the spec file changed in the same commit
                                      satisfies the hook — no need for both.
   Idea: <name>                     — birth (A) or edit (M) of ideas/<name>.md
+  Agent: <id>                      — the committing agent: the plugin injects
+                                     'you are <id>'; REQUIRED on every commit
+                                     (manual: Agent: human); legacy commits
+                                     without it render as 'unknown'
+                                     [#agent-trailer]. Residency [#residency-check]:
+                                     a session id must have a presence file in
+                                     .caped/sessions/ of its home repo — foreign
+                                     repos go through `caped relay`
+                                     [#neighbor-relay]; <id>@<home> is the
+                                     honest-escape mark, human is exempt.
   Change: <name>                   — the commit belongs to changes/<name>.md.
                                      REQUIRED on contract commits (a contract
                                      without a change doc is an undiscussed
@@ -250,7 +260,8 @@ COMMANDS
                           (frontmatter — incl. folded values, a field's text on
                           the next indented line is valid,
                           required sections, spawned_from resolves to a live or
-                          archived entity) [#check-spawned-from]; plus the
+                          archived entity) [#check-spawned-from]; caped.neighbors
+                          format (name<TAB>path<TAB>role); plus the
                           requirement-form check on enforced specs: a '## Requirements'
                           section must exist, every bullet in it starts with a
                           [#<slug>] marker, marker bullets outside it are rejected
@@ -297,14 +308,26 @@ COMMANDS
   caped archive        — deposit deferred open questions into ideas/_backlog.md,
                           run the full gate (refuses on red), git rm + commit
                           Change:/Archives: [#lifecycle-cmds]
+  caped relay <nb> <idea> — the ONLY door into a neighbor repo: topology from
+                          caped.neighbors (name<TAB>path<TAB>role; plan shows it,
+                          check validates it), the idea travels with
+                          spawned_from: null + a Handoff note, the neighbor commit
+                          is home-marked (Agent: <id>@<home>), the local copy is
+                          withdrawn (Archives:) unless --keep [#neighbor-relay]
   caped render [view] — derived views (plan, history, coverage, reqs,
-                          changelog); top-level aliases: caped plan |
+                          changelog, events, agents); top-level aliases: caped plan |
                           history | coverage | reqs | changelog. Printed to
                           stdout — read-only by default [#render-stdout]; --json
                           prints the machine-readable form of a view (same
                           generator as the text) [#render-json]. --write
                           materialises BOTH forms into .caped/ (gitignored)
                           [#render-write], --clean removes it [#render-clean].
+                          events takes --since <hash|date> — the trailer
+                          timeline (birth/edit/into work/archive/withdrawn/adhoc,
+                          each with its agent; window: last 50) [#render-events];
+                          agents is the live presence view over
+                          .caped/sessions/*.jsonl (mtime + end marker)
+                          [#render-agents].
                           The plan marks entities with unarchived depends_on as
                           BLOCKED [#render-blocked]; history is rebuilt from git
                           trailers [#render-history], reads the live status of
@@ -360,6 +383,10 @@ case "$cmd" in
   idea|work|archive)
     shift
     exec "$DIR/caped-lifecycle.sh" "$cmd" "$@"
+    ;;
+  relay)
+    shift
+    exec "$DIR/caped-relay.sh" "$@"
     ;;
   change|show)
     shift

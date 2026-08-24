@@ -284,6 +284,22 @@ def main():
     for spec in enforced_spec_files():
         check_req_form(spec, spec.relative_to(ROOT), errors)
 
+    nbf = ROOT / "caped.neighbors"
+    if nbf.is_file():
+        for i, line in enumerate(nbf.read_text(encoding="utf-8").splitlines(), 1):
+            s = line.strip()
+            if not s or s.startswith("#"):
+                continue
+            parts = s.split("\t")
+            if len(parts) < 3:
+                errors.append(f"caped.neighbors:{i}: need TAB-separated name/path/role — got {len(parts)} field(s)")
+            elif not re.fullmatch(r"[a-z0-9][a-z0-9-]*", parts[0]):
+                errors.append(f"caped.neighbors:{i}: neighbor name '{parts[0]}' must be [a-z0-9][a-z0-9-]*")
+            elif not parts[1]:
+                errors.append(f"caped.neighbors:{i}: neighbor '{parts[0]}' has an empty path")
+            elif not parts[2]:
+                errors.append(f"caped.neighbors:{i}: neighbor '{parts[0]}' has an empty role")
+
     for e in errors:
         print(f"error {e}")
     print(f"caped check: {len(files)} file(s), {len(errors)} error(s)")

@@ -1,0 +1,3 @@
+# caped neighbors — multi-repo topology for this repo (TAB: name, path, role).
+# The only door into a neighbor repo is `caped relay <name> <idea>`. [#neighbor-relay]
+caped-context	/Users/joe/work/caped-context	plugin
