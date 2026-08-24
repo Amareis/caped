@@ -30,8 +30,14 @@ LIFECYCLE (each event is a separate atomic commit)
                 [#idea-birth]. Editing a live idea mirrors change edits [#idea-edit]:
                 M ideas/<name>.md carries the same Idea: <name> trailer and its
                 own commit — exemptions: ideas/_backlog.md (service pseudo-idea:
-                deposits and line maintenance are not idea edits) and idea-rename
-                commits (mv + referrer fixes, governed by the rename rule).
+                deposits and line maintenance are not idea edits; they emit a
+                dedicated backlog-edited feed event [#idea-edit-event]) and
+                idea-rename commits (mv + referrer fixes, governed by the rename
+                rule). A commit touching several idea files (A/M, minus _backlog
+                and rename commits) is rejected with an honest "one idea per
+                commit — split" error; per-file checks match against ALL Idea:
+                trailers, so "trailer required" only fires when the trailer is
+                truly absent.
   2. In work:   clean git mv ideas/<name>.md changes/<name>.md [#take-into-work] (no content
                 edits — rename detection must stitch the file's history;
                 the mv keeps the filename), trailer Change: <name>. A
@@ -235,7 +241,8 @@ COMMANDS
                           moves. Idempotent [#init-idempotent]: safe to re-run,
                           it only repairs missing pieces and refreshes the report.
   caped check         — structural validation of ideas/ and changes/ [#check-structure]
-                          (frontmatter,
+                          (frontmatter — incl. folded values, a field's text on
+                          the next indented line is valid,
                           required sections, spawned_from resolves to a live or
                           archived entity) [#check-spawned-from]; plus the
                           requirement-form check on enforced specs: a '## Requirements'
@@ -255,8 +262,8 @@ COMMANDS
   caped events         — lifecycle event feed by cursor: .caped/events/feed.jsonl
                           (append-only, one line per fact), --since <lines-consumed>;
                           the post-commit shim emits idea-born / idea-edited /
-                          taken-into-work / archived / adhoc / contract; the
-                          hook writes
+                          taken-into-work / archived / adhoc / contract /
+                          backlog-edited; the hook writes
                           commit-rejected when it rejects a commit; both dispatch
                           versioned .caped/hooks/<event> scripts (repo policy,
                           like git hooks) [#event-feed] [#commit-rejected-event]
