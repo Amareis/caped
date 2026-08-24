@@ -40,9 +40,14 @@ agent="${agent:-${CAPED_AGENT:-}}"
 [ -n "$agent" ] || die "sender id required — no default: set CAPED_AGENT (manual: CAPED_AGENT=human) or --agent <id>"
 
 path=""
-while IFS=$'\t' read -r n p role; do
-  case "$n" in '' | \#*) continue ;; esac
-  if [ "$n" = "$nb" ]; then path="$p"; break; fi
+# awk parse (not while-read): while-read silently drops a final line that lacks
+# a trailing newline; awk is newline- and TAB-robust.
+while IFS= read -r line; do
+  [ -n "$line" ] || continue
+  n="$(printf '%s' "$line" | awk -F'\t' '$1 !~ /^#/ && $1 != "" {print $1; exit}')"
+  p="$(printf '%s' "$line" | awk -F'\t' '{print $2}')"
+  [ -n "$n" ] || continue
+  if [ "$n" = "$nb" ] && [ -n "$p" ]; then path="$p"; break; fi
 done < caped.neighbors
 [ -n "$path" ] || die "neighbor '$nb' not found in caped.neighbors"
 [ -d "$path/.git" ] || die "$path is not a git repo"
