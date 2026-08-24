@@ -6,8 +6,9 @@
 # lines < PIPE_BUF). The consumer cursor is the count of already-consumed
 # lines; a partial trailing line is never produced by << but is skipped on read.
 #
-# Event types (v0): idea-born, idea-edited, taken-into-work, archived, adhoc, contract,
-# backlog-edited. (tool-updated arrives with the version-stamp check later.)
+# Event types (v0): idea-born, idea-edited, taken-into-work, archived,
+# idea-withdrawn, adhoc, contract, backlog-edited. (tool-updated arrives with the
+# version-stamp check later.)
 #
 # Dispatch: for each event, if .caped/hooks/<event> exists and is executable it
 # runs with CAPED_EVENT, CAPED_ENTITY, CAPED_COMMIT, CAPED_ROOT in the env.
@@ -43,6 +44,8 @@ post_commit() { # called by the post-commit shim; reads HEAD, emits the dominant
   ent="$(printf '%s\n' "$body" | sed -n 's/^Archives: \([^ ]*\)/\1/p' | head -1)"
   if [ -n "$ent" ] && git show --name-status --format= "$h" | grep -q "^D\tchanges/$ent.md$"; then
     emit archived "$ent"; return 0; fi
+  if [ -n "$ent" ] && git show --name-status --format= "$h" | grep -q "^D\tideas/$ent.md$"; then
+    emit idea-withdrawn "$ent"; return 0; fi
   ent="$(printf '%s\n' "$body" | sed -n 's/^Idea: \([^ ]*\)/\1/p' | head -1)"
   if [ -n "$ent" ] && git show --name-status --format= "$h" | grep -q "^A\tideas/$ent.md$"; then
     emit idea-born "$ent"; return 0; fi
