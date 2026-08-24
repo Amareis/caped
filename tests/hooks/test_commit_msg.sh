@@ -207,6 +207,19 @@ git add ideas/m1.md
 msg 'edit m1 (trailer not first)\n\nIdea: ghost\nIdea: m1\n'
 expect_accept 'single idea edit passes when its Idea: is not first [#idea-edit]'
 
+# BSD-tab regression (relay from kudach): [^\t] on BSD grep is "not backslash/t",
+# so idea names containing 't' dropped out of the multi-idea counter.
+echo '- idea t1' > ideas/t1.md; git add ideas/t1.md
+msg 'add idea t1\n\nIdea: t1\n'
+expect_accept 'idea t1 born (setup, t-name) [#idea-edit]'
+echo '- idea t2' > ideas/t2.md; git add ideas/t2.md
+msg 'add idea t2\n\nIdea: t2\n'
+expect_accept 'idea t2 born (setup, t-name) [#idea-edit]'
+echo '- e' >> ideas/t1.md; echo '- e' >> ideas/t2.md; git add ideas/t1.md ideas/t2.md
+msg 'edit t1 and t2\n\nIdea: t1\nIdea: t2\n'
+expect_reject_matching 't-named multi-idea commit gets the honest split error [#idea-edit]' 'one idea per commit'
+git reset -q; git checkout -q -- ideas/t1.md ideas/t2.md
+
 # --- Events: changes/ --------------------------------------------------------
 
 echo '- change y' > changes/y.md; git add changes/y.md

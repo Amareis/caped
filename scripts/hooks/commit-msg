@@ -118,12 +118,12 @@ fi
 NS_ALL="$(git diff --cached --name-status -M)"
 # An idea-rename commit (mv + referrer fixes across ideas/) is governed by the
 # rename rule, not the edit rule — its M ideas/*.md need no Idea: trailer.
-RENAMES="$(printf '%s\n' "$NS_ALL" | grep -E '^R[0-9]*\tideas/[^\t]*\.md\tideas/[^\t]*\.md$' || true)"
+RENAMES="$(printf '%s\n' "$NS_ALL" | grep -E '^R[0-9]*\tideas/[^/]*\.md\tideas/[^/]*\.md$' || true)"
 # Multi-idea commits (A or M of >=2 idea files, minus _backlog and rename
 # commits) are two semantic events — reject with an honest "split" message,
 # not a lying per-file "trailer required" (the trailer may be present, just not
 # first). Single-idea checks below match against ALL Idea: trailers.
-IDEA_TOUCHES="$(printf '%s\n' "$NS_ALL" | grep -E '^(A|M)\tideas/[^\t]+\.md$' | grep -Ev $'^(A|M)\tideas/_backlog\.md$' || true)"
+IDEA_TOUCHES="$(printf '%s\n' "$NS_ALL" | grep -E '^(A|M)\tideas/[^/]+\.md$' | grep -Ev $'^(A|M)\tideas/_backlog\.md$' || true)"
 IDEA_COUNT="$(printf '%s\n' "$IDEA_TOUCHES" | sed '/^$/d' | wc -l | tr -d ' ')"
 [ -n "$IDEA_COUNT" ] || IDEA_COUNT=0
 if [ "$IDEA_COUNT" -gt 1 ] && [ -z "$RENAMES" ]; then
