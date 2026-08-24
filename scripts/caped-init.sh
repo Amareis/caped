@@ -102,7 +102,7 @@ if [ ! -f AGENTS.md ]; then
 
 This repository uses caped (capability-based change discipline).
 First action in any session: run \`$TOOL_WRAPPER\` with no arguments
-and follow the printed rules. \`$TOOL_WRAPPER render plan\` shows the
+and follow the printed rules. \`$TOOL_WRAPPER plan\` shows the
 work map (queue, territories, blockers).
 EOF
   echo "ok: AGENTS.md seeded (points at $TOOL_WRAPPER)"

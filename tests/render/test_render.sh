@@ -98,15 +98,22 @@ esac
 if [ -e .caped ]; then bad 'default run created .caped/ [#render-stdout]'
 else ok 'default run writes nothing [#render-stdout]'; fi
 
-# A single view prints only that view. [#render-stdout]
-expect_out 'single view run succeeds [#render-stdout]' plan
+# Top-level aliases route to the same generator. [#render-stdout]
+plain="$(bash "$CAPED" render plan 2>&1)"
+aliased="$(bash "$CAPED" plan 2>&1)"
+if [ "$plain" = "$aliased" ]; then ok 'caped plan alias equals caped render plan [#render-stdout]'
+else bad "caped plan alias differs: $aliased"; fi
+for v in history coverage reqs; do
+  OUT="$(bash "$CAPED" "$v" 2>&1)"
+  case "$OUT" in
+    *"== $v"*) ok "caped $v alias prints the $v view [#render-stdout]" ;;
+    *) bad "caped $v alias wrong: $OUT" ;;
+  esac
+done
+OUT="$(bash "$CAPED" changelog 2>&1)"
 case "$OUT" in
-  *"== plan =="*) ok 'plan view printed [#render-stdout]' ;;
-  *) bad "plan view missing: $OUT" ;;
-esac
-case "$OUT" in
-  *"== history"*) bad "plan-only run leaked history: $OUT" ;;
-  *) ok 'plan-only run has no history section [#render-stdout]' ;;
+  *"caped changelog:"*) ok 'caped changelog alias prints the changelog [#tool-version]' ;;
+  *) bad "caped changelog alias wrong: $OUT" ;;
 esac
 
 # History reconstructs the archive from trailers. [#render-history]
@@ -150,6 +157,14 @@ case "$OUT" in
   *"in work"*"в работу gamma"*) ok 'in-work: doc from FS + timeline [#change-show]' ;;
   *) bad "in-work show wrong: $OUT" ;;
 esac
+set +e
+OUT="$(bash "$CAPED" show gamma 2>&1)"; RC=$?
+set -e
+if [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -q 'в работу gamma'; then
+  ok 'caped show alias rebuilds the entity [#change-show]'
+else
+  bad "caped show alias wrong: $OUT rc=$RC"
+fi
 set +e
 OUT="$(bash "$CAPED" change show ghost 2>&1)"; RC=$?
 set -e

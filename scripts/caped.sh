@@ -86,7 +86,7 @@ CAPABILITY REGISTRY (caped.registry, TAB-separated: name, prefix, state, spec fi
               starts with it. READ caped.registry to know which paths are
               enforced — or just commit and let the hook tell you.
               Then survey the territory BEFORE any tracker action
-              (spawning, working, reviewing): run `caped render plan` —
+              (spawning, working, reviewing): run `caped plan` —
               the registry says which paths are enforced, the plan says
               what is already in work, stalled, or depended on; the hook
               guards format, not territory [#render-first]. The history
@@ -255,7 +255,7 @@ COMMANDS
                           commit-rejected when it rejects a commit; both dispatch
                           versioned .caped/hooks/<event> scripts (repo policy,
                           like git hooks) [#event-feed] [#commit-rejected-event]
-  render changelog    — the free contract changelog (Behavior: contract commits
+  caped changelog     — the free contract changelog (Behavior: contract commits
                           with their Spec:); its FIRST LINE is the tool's version
                           constant — the bundled copy feeds the tool-updated event
                           [#tool-version]
@@ -263,21 +263,23 @@ COMMANDS
                           line: head of scripts/CHANGELOG.caped.generated.md);
                           --path prints the bundle path for consumers; --changelog
                           prints the bundle CONTENTS — the TOOL's contract
-                          changelog, repo-agnostic (render changelog renders the
+                          changelog, repo-agnostic (caped changelog renders the
                           current repo's contracts instead); a missing bundle is
                           a valid answer (exit 0) [#tool-version]
   caped change show    — rebuild an entity in one call: live text (FS) or the
                           final document (from the Archives-commit parent); the
                           event timeline and every commit with the entity's
                           Idea:/Change:/Archives:/Adhoc: trailer; unknown names
-                          fail exit 2 with the closest candidates [#change-show]
+                          fail exit 2 with the closest candidates; top-level
+                          alias: caped show <name> [#change-show]
   caped idea           — ideas/<name>.md skeleton + commit with Idea: <name>
   caped work           — clean git mv ideas/ -> changes/ + commit Change: <name>
   caped archive        — deposit deferred open questions into ideas/_backlog.md,
                           run the full gate (refuses on red), git rm + commit
                           Change:/Archives: [#lifecycle-cmds]
-  caped render [view] — derived views (plan, history, coverage, reqs)
-                          printed to
+  caped render [view] — derived views (plan, history, coverage, reqs,
+                          changelog); top-level aliases: caped plan |
+                          history | coverage | reqs | changelog. Printed to
                           stdout — read-only by default [#render-stdout]; --json
                           prints the machine-readable form of a view (same
                           generator as the text) [#render-json]. --write
@@ -339,7 +341,7 @@ case "$cmd" in
     shift
     exec "$DIR/caped-lifecycle.sh" "$cmd" "$@"
     ;;
-  change)
+  change|show)
     shift
     exec python3 "$DIR/caped-render.py" change "$@"
     ;;
@@ -350,6 +352,10 @@ case "$cmd" in
   render)
     shift
     exec python3 "$DIR/caped-render.py" "$@"
+    ;;
+  plan|history|coverage|reqs|changelog)
+    shift
+    exec python3 "$DIR/caped-render.py" "$cmd" "$@"
     ;;
   trace) exec "$DIR/caped-trace.sh" ;;
   *)
