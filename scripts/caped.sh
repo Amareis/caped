@@ -27,7 +27,11 @@ ABOUT [#dump-abstract]
 LIFECYCLE (each event is a separate atomic commit)
 
   1. Idea:      new file ideas/<name>.md, commit with trailer  Idea: <name>
-                [#idea-birth]
+                [#idea-birth]. Editing a live idea mirrors change edits [#idea-edit]:
+                M ideas/<name>.md carries the same Idea: <name> trailer and its
+                own commit — exemptions: ideas/_backlog.md (service pseudo-idea:
+                deposits and line maintenance are not idea edits) and idea-rename
+                commits (mv + referrer fixes, governed by the rename rule).
   2. In work:   clean git mv ideas/<name>.md changes/<name>.md [#take-into-work] (no content
                 edits — rename detection must stitch the file's history;
                 the mv keeps the filename), trailer Change: <name>. A
@@ -69,7 +73,7 @@ COMMIT TRAILERS (git trailers, enforced by the commit-msg hook)
                                      contract changes. Either the trailer or
                                      the spec file changed in the same commit
                                      satisfies the hook — no need for both.
-  Idea: <name>                     — birth of ideas/<name>.md
+  Idea: <name>                     — birth (A) or edit (M) of ideas/<name>.md
   Change: <name>                   — the commit belongs to changes/<name>.md.
                                      REQUIRED on contract commits (a contract
                                      without a change doc is an undiscussed
@@ -250,8 +254,9 @@ COMMANDS
                           or duplicated slugs ('[#<slug> no-test]' exempts)
   caped events         — lifecycle event feed by cursor: .caped/events/feed.jsonl
                           (append-only, one line per fact), --since <lines-consumed>;
-                          the post-commit shim emits idea-born / taken-into-work /
-                          archived / adhoc / contract; the hook writes
+                          the post-commit shim emits idea-born / idea-edited /
+                          taken-into-work / archived / adhoc / contract; the
+                          hook writes
                           commit-rejected when it rejects a commit; both dispatch
                           versioned .caped/hooks/<event> scripts (repo policy,
                           like git hooks) [#event-feed] [#commit-rejected-event]
@@ -269,7 +274,9 @@ COMMANDS
   caped change show    — rebuild an entity in one call: live text (FS) or the
                           final document (from the Archives-commit parent); the
                           event timeline and every commit with the entity's
-                          Idea:/Change:/Archives:/Adhoc: trailer; unknown names
+                          Idea:/Change:/Archives:/Adhoc: trailer (Idea:-commits:
+                          'birth' on A, 'edit' on M by diff [#idea-edit-event]);
+                          unknown names
                           fail exit 2 with the closest candidates; top-level
                           alias: caped show <name> [#change-show]
   caped idea           — ideas/<name>.md skeleton + commit with Idea: <name>
