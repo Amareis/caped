@@ -180,9 +180,13 @@ if [ -n "$EVENT_ERRORS" ]; then
     # rejected-commit visibility: the rejection itself is a feed fact (written
     # by the gate while it stays BEFORE — notification vs enforcement).
     mkdir -p "$ROOT/.caped/events" 2>/dev/null || true
-    printf '{"t":"commit-rejected","e":"%s","c":"%s","at":"%s"}\n' \
+    # The rejection reasons ride along as m: (single-line JSON-escaped) so the
+    # fact stays useful when the hook's stderr is lost (pipes, truncation).
+    MSG="$(printf '%s' "$EVENT_ERRORS" | sed -e ':a;N;$!ba' -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/\n/\\n/g' | head -c 500 || true)"
+    printf '{"t":"commit-rejected","e":"%s","c":"%s","m":"%s","at":"%s"}\n' \
       "${ARCHIVES:-}${IDEA:-}${CHANGE:-}" \
       "$(git rev-parse --short HEAD 2>/dev/null || echo -)" \
+      "$MSG" \
       "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$ROOT/.caped/events/feed.jsonl" 2>/dev/null || true
     crhook="$ROOT/.caped/hooks/commit-rejected"
     if [ -x "$crhook" ]; then

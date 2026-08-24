@@ -256,8 +256,9 @@ write-only слоем и дрейфует. Критерий границы v0 (�
   archived / adhoc / contract) и commit-rejected (хук при валидационном отказе — факт ПОСЛЕ, гейт остаётся
   ДО) в `.caped/events/feed.jsonl` (append-only, одна строка = один write(2)),
 - [#commit-rejected-event dump] Отказ хука — факт попытки: commit-msg при валидационных ошибках пишет
-  `commit-rejected` в ленту (без тела ошибок — детали в stderr; гейт остаётся ДО, событие ПОСЛЕ);
-  `caped events --since <n>` читает по курсору; реакции — версионированные `.caped/hooks/<event>`
+  `commit-rejected` в ленту с текстом причин в поле `m:` (на случай потери stderr — пайпы,
+  обрезка; гейт остаётся ДО, событие ПОСЛЕ); `caped events --since <n>` читает по
+  курсору; реакции — версионированные `.caped/hooks/<event>`
   (политика репо, как git hooks; запуск с env CAPED_EVENT/CAPED_ENTITY/CAPED_COMMIT). Нотификация ≠
   энфорсмент: события — факты ПОСЛЕ (post-commit), хук-гейты — ДО.
 - [#tool-version dump] Версия тула = голова встроенного чейнджлога (view `render changelog`,
