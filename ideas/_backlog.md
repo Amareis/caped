@@ -17,7 +17,7 @@ spawned_from: null
 
 - Конфиг-слой caped (языковые списки маркеров requirement-format O3/O2, пути по умолчанию, предпочтения плагина) — «конфиги сами будущая идея» | from question-lifecycle | 2026-08-23
 - События состояний проверок (trace-red/check-red) как типы ленты — возможная точка расширения капед-событий, потребитель при появлении | from caped-event-hooks | 2026-08-23
-- Калибровочные данные pass@N (мини-луп vs реальный dsh) и dsh-профиль-пакет для фикстур — ждут ключа провайдера в окружении; guard-путь готов (tests/secretary/test_calibration.sh) | from e2e-harness-realism | 2026-08-23
+- Калибровочные данные pass@N (мини-луп vs реальный dsh) и dsh-профиль-пакет для фикстур — ждут ключа провайдера в окружении | from e2e-harness-realism | 2026-08-23
 - Видимость rejected-commit для плагина — ПЕРЕДАНО: потребление события commit-rejected (туловый факт заархивирован commit-rejected-event) и мгновенный наг — идея `commit-rejected-nag` у плагина (b6a1d38); детект тул-логов — запасной путь | from session-103 | 2026-08-23
 
 ## Decisions
