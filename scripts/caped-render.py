@@ -597,9 +597,15 @@ def change_show(argv):
     elif rname in archived:
         a = archived[rname]
         res = subprocess.run(["git", "show", f"{a[2]}^:changes/{rname}.md"], capture_output=True, text=True, check=False)
+        if res.returncode != 0:
+            res = subprocess.run(["git", "show", f"{a[2]}^:ideas/{rname}.md"], capture_output=True, text=True, check=False)
         doc = res.stdout if res.returncode == 0 else ""
         source = "archive parent " + a[1]
-        status = "archived"
+        ns = run(["git", "show", "--name-status", "--format=", a[2]], check=False)
+        if re.search(r"^D\tideas/" + re.escape(rname) + r"\.md$", ns, re.M):
+            status = "withdrawn"
+        else:
+            status = "archived"
     else:
         adhoc = _adhoc_cluster(rname)
         if adhoc:

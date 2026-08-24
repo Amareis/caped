@@ -196,6 +196,11 @@ case "$OUT" in
   *delta*"withdrawn"*) ok 'idea archived directly shows as withdrawn [#idea-archival]' ;;
   *) bad "withdrawn missing: $OUT" ;;
 esac
+expect_out 'change show of a withdrawn idea [#change-show]' change show delta
+case "$OUT" in
+  *"== change: delta =="*"withdrawn"*) ok 'withdrawn idea doc readable from the ideas parent [#change-show]' ;;
+  *) bad "withdrawn doc wrong: $OUT" ;;
+esac
 
 # --- rename stitching: old name shown as (was: ...) -------------------------
 new_repo
