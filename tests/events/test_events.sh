@@ -92,6 +92,20 @@ git commit -qF - <<'FIX'
 Idea: ex2
 FIX
 
+printf -- '---\nname: _backlog\nsummary: backlog fixture\n---\n' > ideas/_backlog.md
+git add ideas/_backlog.md
+git commit -qF - <<'FIX'
+идея _backlog
+
+Idea: _backlog
+FIX
+echo '- note' >> ideas/_backlog.md
+git add ideas/_backlog.md
+git commit -qF - <<'FIX'
+бэклог: note
+
+FIX
+
 OUT="$(bash "$CAPED" events)"
 case "$OUT" in
   *'idea-born'*'ex1'*) ok 'idea-born event in the feed [#event-feed]' ;;
@@ -112,6 +126,10 @@ esac
 case "$OUT" in
   *'idea-edited'*'ex2'*) ok 'idea-edited event in the feed [#idea-edit-event]' ;;
   *) bad "idea-edited missing: $OUT" ;;
+esac
+case "$OUT" in
+  *'backlog-edited'*'_backlog'*) ok 'backlog-edited event in the feed [#idea-edit-event]' ;;
+  *) bad "backlog-edited missing: $OUT" ;;
 esac
 
 N="$(wc -l < .caped/events/feed.jsonl)"
