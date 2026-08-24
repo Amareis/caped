@@ -524,7 +524,12 @@ def agents_data():
                 continue
             sid = str(hdr.get("session", p.stem))
             agent = str(hdr.get("agent", ""))
-            ended = any('"end"' in ln for ln in lines[1:])
+            # Alive is mtime-first: the heartbeat (activity hooks + SessionHeartbeat)
+            # touches the file even without rows, kimi SessionEnd also fires on
+            # /plugins reload — an end marker means "finished" only as the file's
+            # TAIL with a STALE mtime (rows after end = the session came back).
+            tail = lines[-1] if lines else ""
+            end_in_tail = "end" in tail
             first, started = "", None
             for ln in lines[1:]:
                 try:
@@ -537,7 +542,7 @@ def agents_data():
                     first = str(j["text"])[:60]
                     break
             age = now - p.stat().st_mtime
-            if ended:
+            if end_in_tail and age >= 600:
                 status = "завершена"
             elif age < 600:
                 status = "жив"
@@ -546,8 +551,9 @@ def agents_data():
             start = ""
             if started:
                 start = _dt.datetime.fromtimestamp(started / 1000).strftime("%H:%M")
+            short = re.sub(r"^session[_-]", "", sid)[:8] if not agent else agent
             rows.append({
-                "session": sid, "agent": agent or sid[:8],
+                "session": sid, "agent": short,
                 "status": status, "start": start, "first": first, "age_min": int(age // 60),
             })
     return {"view": "agents", "rows": rows, "count": len(rows)}

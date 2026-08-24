@@ -120,6 +120,29 @@ if printf '%s' "$OUT" | grep -q 'dsh/s1' && printf '%s' "$OUT" | grep -q 'first 
   ok 'agents view shows the agent and first prompt [#render-agents]'
 else bad "agents view mismatch: $OUT"; fi
 
+# Alive is mtime-first: a mid-file end marker with a fresh mtime is a reload, not death.
+TS="$(($(date +%s) * 1000 - 40000))"
+printf '{"v":1,"session":"session-live-1","agent":"dsh/live1"}\n{"v":1,"type":"end"}\n{"v":1,"seq":9,"t":%d,"role":"user","text":"resumed after reload"}\n' "$TS" > .caped/sessions/session-live-1.jsonl
+expect_out 'agents marks a mid-file-end session alive [#render-agents]' agents
+if printf '%s' "$OUT" | grep -q 'dsh/live1.*жив'; then
+  ok 'fresh mtime beats the mid-file end marker [#render-agents]'
+else bad "mid-file end treated as death: $OUT"; fi
+
+# Tail end with a stale mtime = a real finish.
+printf '{"v":1,"session":"session-dead-1","agent":"dsh/dead1"}\n{"v":1,"type":"end"}\n' > .caped/sessions/session-dead-1.jsonl
+touch -t 202001010101 .caped/sessions/session-dead-1.jsonl
+expect_out 'agents marks a tail-end stale session finished [#render-agents]' agents
+if printf '%s' "$OUT" | grep -q 'dsh/dead1.*завершена'; then
+  ok 'tail end + stale mtime = завершена [#render-agents]'
+else bad "tail-end stale not finished: $OUT"; fi
+
+# Legacy session without an agent field: the sid falls back with the prefix stripped.
+printf '{"v":1,"session":"session-legacy-abc123"}\n{"v":1,"seq":1,"t":%d,"role":"user","text":"legacy talk"}\n' "$TS" > .caped/sessions/session-legacy-abc123.jsonl
+expect_out 'agents strips the session_ prefix on legacy fallback [#render-agents]' agents
+if printf '%s' "$OUT" | grep -q '^  legacy-' && ! printf '%s' "$OUT" | grep -q 'session-legacy'; then
+  ok 'fallback shortid has no session- prefix [#render-agents]'
+else bad "prefix not stripped: $OUT"; fi
+
 # Top-level aliases route to the same generator. [#render-stdout]
 plain="$(bash "$CAPED" render plan 2>&1)"
 aliased="$(bash "$CAPED" plan 2>&1)"

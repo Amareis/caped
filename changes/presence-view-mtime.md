@@ -31,7 +31,15 @@ reload`, mtime при этом свежий. Рядом dsh-сессии без 
 
 ## Decisions
 
-—
+- Живость — mtime-first: heartbeat (activity + SessionHeartbeat) тачит файл даже без
+  строк; end-маркер — завершение ТОЛЬКО когда он последняя строка И mtime старше
+  порога (end-в-хвосте при свежем mtime — /plugins reload во сне, не смерть; строки
+  после end — сессия ожила). Реализовано в render agents: status по этой формуле.
+- Fallback-идентичность без agent-поля: `session_`/`session-` срезается до усечения
+  (`legacy-ab` вместо `session-legacy-a»).
+- Релей-баг из Handoff: `caped relay` не ставил change-class на коммите у соседа —
+  хук цели требует Behavior на enforced-путях. Команда теперь ставит `Behavior:
+  internal` в релей-коммите (безвреден вне капов, обязателен при capped-целях).
 
 ## Rejected alternatives
 
@@ -44,10 +52,10 @@ kimi-cli из живой сессии (2026-08-24): «подискавери ч�
 
 ## Open questions
 
-- End-маркер считать завершением только когда он ПОСЛЕДНЯЯ строка файла И mtime
-  старше heartbeat-порога: строки после end = сессия ожила; heartbeat тачит mtime
-  без строк, поэтому end-в-хвосте при свежем mtime — reload во время сна, не смерть
-  | from kimi-cli (kudach), 2026-08-24
+- ОТВЕЧЕН (2026-08-24): end-маркер — завершение только как ПОСЛЕДНЯЯ строка файла
+  И mtime старше heartbeat-порога — реализовано в render agents (строки после end =
+  ожила; end-в-хвосте при свежем mtime = reload во сне, не смерть) | from kimi-cli
+  (kudach), 2026-08-24
 
 ## Handoff
 

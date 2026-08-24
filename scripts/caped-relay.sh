@@ -55,6 +55,7 @@ git -C "$path" commit -q -F - <<EOF
 идея $name: релей из $home ($ours)
 
 Idea: $name
+Behavior: internal
 Agent: $agent
 EOF
 relayed="$(git -C "$path" rev-parse --short HEAD)"
