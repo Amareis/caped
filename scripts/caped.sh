@@ -157,7 +157,10 @@ SPAWNING IDEAS [#idea-autonomy] (the agent decides WHERE a decision lives — do
     ideas/_backlog.md — the reserved pseudo-idea: a regular valid idea file
     that is NEVER taken into work; its Requirements hold the parked thoughts
     (render reqs shows them; line format: thought | from <change> | date);
-    picking an entry up means spawning a real idea from it. At archive the
+    picking an entry up means spawning a real idea from it. The backlog is
+    future-only: an entry that is applied or transferred is REMOVED from the
+    lines — the trace lives in git history, not in the showcase (a (status)
+    tag in a line marks it for cleanup, not a ledger). At archive the
     hook enforces: answer, promote, or deposit [#question-gate].
 
 DISCIPLINE
