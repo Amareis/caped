@@ -93,6 +93,47 @@ run_check
 if [ "$RC" -eq 0 ]; then ok 'valid file passes [#check-structure]'
 else bad "valid file failed: $OUT"; fi
 
+# A folded (multi-line) summary value — valid YAML, not "missing or empty". [#check-structure]
+new_repo
+cat > ideas/folded.md <<'EOF'
+---
+name: folded
+summary: 
+  fixture entity folded over two lines
+spawned_from: null
+---
+
+## Why
+
+z
+
+## Context
+
+k
+
+## Requirements
+
+t
+
+## Decisions
+
+## Rejected alternatives
+
+—
+
+## Provenance
+
+p
+
+## Open questions
+
+o
+EOF
+git add -A && git commit -qm folded
+run_check
+if [ "$RC" -eq 0 ]; then ok 'folded frontmatter value passes [#check-structure]'
+else bad "folded frontmatter failed: $OUT"; fi
+
 # No frontmatter at all. [#check-structure]
 new_repo
 printf 'no frontmatter here\n' > ideas/broken.md
