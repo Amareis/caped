@@ -262,6 +262,9 @@ COMMANDS
                           re-running init repairs the shim after the tool
                           moves. Idempotent [#init-idempotent]: safe to re-run,
                           it only repairs missing pieces and refreshes the report.
+                          Among the seeded pieces: the ideas/_backlog.md skeleton
+                          (the archive deposit target) — created when missing,
+                          an existing file is never touched.
   caped check         — structural validation of ideas/ and changes/ [#check-structure]
                           (frontmatter — incl. folded values, a field's text on
                           the next indented line is valid,
@@ -316,9 +319,9 @@ COMMANDS
                           alias: caped show <name> [#change-show]
   caped idea           — ideas/<name>.md skeleton + commit with Idea: <name>
   caped work           — clean git mv ideas/ -> changes/ + commit Change: <name>
-  caped archive        — deposit deferred open questions into ideas/_backlog.md,
-                          run the full gate (refuses on red), git rm + commit
-                          Change:/Archives: [#lifecycle-cmds]
+  caped archive        — deposit deferred open questions into ideas/_backlog.md
+                          (seeded by caped init), run the full gate (refuses on
+                          red), git rm + commit Change:/Archives: [#lifecycle-cmds]
   caped relay <nb> <idea> — the ONLY door into a neighbor repo: topology from
                           caped.neighbors (name<TAB>path<TAB>role; plan shows it,
                           check validates it). Sender id REQUIRED (CAPED_AGENT/
