@@ -60,10 +60,35 @@ CHANGE="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Change: //p' | head -1 || true)
 ARCHIVES="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Archives: //p' | head -1 || true)"
 ADHOC="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Adhoc: //p' | head -1 || true)"
 IDEAS_ALL="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Idea: //p' || true)"
+AGENT="$(printf '%s\n' "$TRAILERS" | sed -n 's/^Agent: //p' | head -1 || true)"
 
 EVENT_ERRORS=""
 err() { EVENT_ERRORS="${EVENT_ERRORS}$1
 "; }
+
+# Identity: every commit carries the agent's id — the plugin injects
+# 'you are <id>' into the session context; manual commits: Agent: human.
+# Legacy commits without the trailer stay visible (render shows 'unknown'),
+# but no NEW commit enters without it: the rejection is a commit-rejected
+# feed fact the home plugin turns into a name nag.
+if [ -z "$AGENT" ]; then
+    err "commit without Agent: — the plugin injects 'you are <id>' into the session; manual commits carry Agent: human"
+elif printf '%s' "$AGENT" | grep -q '[[:space:]]'; then
+    err "Agent: must be a single token (harness/id like kimi-cli/486d59, dsh, or human) — got: $AGENT"
+fi
+# Residency (rollout, warn-mode): a session id (not human, no @<home> escape)
+# must have a presence file with this id in .caped/sessions/ — the plugin writes
+# those only in the agent's HOME repo. While NO session file in this repo carries
+# an agent field, the plugin is not live here and the check stays off. The only
+# door into a foreign repo is `caped relay`. [#residency-check]
+if [ -n "$AGENT" ] && [ "$AGENT" != "human" ] && ! printf '%s' "$AGENT" | grep -q '@'; then
+    SESS="$ROOT/.caped/sessions"
+    if [ -d "$SESS" ] && grep -l '"agent"' "$SESS"/*.jsonl >/dev/null 2>&1; then
+        if ! grep -q '"agent":"'"$AGENT"'"' "$SESS"/*.jsonl 2>/dev/null; then
+            err "Agent: $AGENT has no resident session in .caped/sessions/ — this is not your repo: use 'caped relay' from your home, or subscribe $AGENT@<home>"
+        fi
+    fi
+fi
 
 NS_ALL="$(git diff --cached --name-status -M)"
 # An idea-rename commit (mv + referrer fixes across ideas/) is governed by the
