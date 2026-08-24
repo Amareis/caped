@@ -251,9 +251,10 @@ COMMANDS
   caped events         — lifecycle event feed by cursor: .caped/events/feed.jsonl
                           (append-only, one line per fact), --since <lines-consumed>;
                           the post-commit shim emits idea-born / taken-into-work /
-                          archived / adhoc / contract and dispatches versioned
-                          .caped/hooks/<event> scripts (repo policy, like git hooks)
-                          [#event-feed]
+                          archived / adhoc / contract; the hook writes
+                          commit-rejected when it rejects a commit; both dispatch
+                          versioned .caped/hooks/<event> scripts (repo policy,
+                          like git hooks) [#event-feed] [#commit-rejected-event]
   render changelog    — the free contract changelog (Behavior: contract commits
                           with their Spec:); its FIRST LINE is the tool's version
                           constant — the bundled copy feeds the tool-updated event

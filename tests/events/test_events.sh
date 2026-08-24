@@ -119,6 +119,22 @@ else
   bad "tool-updated missing: $(tail -1 .caped/events/feed.jsonl 2>/dev/null)"
 fi
 
+# --- commit-rejected: hook rejection is a feed fact ---------------------------
+if grep -q '"t":"commit-rejected"' .caped/events/feed.jsonl 2>/dev/null; then
+  bad 'commit-rejected leaked on a valid chain [#commit-rejected-event]'
+else ok 'valid commits do not emit commit-rejected [#commit-rejected-event]'; fi
+N0="$(wc -l < .caped/events/feed.jsonl)"
+mkdir -p changes
+printf '# z\n' > changes/z.md; git add changes/z.md
+set +e; git commit -qF - <<'MSG' >/dev/null 2>&1; RC=$?; set -e
+if [ "$RC" -ne 0 ]; then ok 'hook rejects the direct change add (setup) [#commit-rejected-event]'
+else bad 'hook accepted the direct add'; git reset -q --soft HEAD~1; fi
+N1="$(wc -l < .caped/events/feed.jsonl)"
+if [ "$N1" -gt "$N0" ] && tail -1 .caped/events/feed.jsonl | grep -q '"t":"commit-rejected"'; then
+  ok 'rejected commit lands as commit-rejected in the feed [#commit-rejected-event]'
+else bad "commit-rejected missing: $(tail -1 .caped/events/feed.jsonl 2>/dev/null)"; fi
+git reset -q -- changes/z.md 2>/dev/null || true; rm -f changes/z.md
+
 # --- caped version: the consumer contract point -----------------------------
 OUT="$(bash "$CAPED" version)"
 case "$OUT" in

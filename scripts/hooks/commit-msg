@@ -177,6 +177,17 @@ if [ -n "$CAP_NAME" ]; then
 fi
 
 if [ -n "$EVENT_ERRORS" ]; then
+    # rejected-commit visibility: the rejection itself is a feed fact (written
+    # by the gate while it stays BEFORE — notification vs enforcement).
+    mkdir -p "$ROOT/.caped/events" 2>/dev/null || true
+    printf '{"t":"commit-rejected","e":"%s","c":"%s","at":"%s"}\n' \
+      "${ARCHIVES:-}${IDEA:-}${CHANGE:-}" \
+      "$(git rev-parse --short HEAD 2>/dev/null || echo -)" \
+      "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$ROOT/.caped/events/feed.jsonl" 2>/dev/null || true
+    crhook="$ROOT/.caped/hooks/commit-rejected"
+    if [ -x "$crhook" ]; then
+      CAPED_EVENT="commit-rejected" CAPED_ROOT="$ROOT" "$crhook" || true
+    fi
     printf 'commit-msg: rule violations:\n%s' "$EVENT_ERRORS" >&2
     exit 1
 fi
