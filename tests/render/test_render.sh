@@ -98,6 +98,28 @@ esac
 if [ -e .caped ]; then bad 'default run created .caped/ [#render-stdout]'
 else ok 'default run writes nothing [#render-stdout]'; fi
 
+# --- events view: the incremental trailer timeline ----------------------------
+expect_out 'events view renders [#render-events]' events
+if printf '%s' "$OUT" | grep -q 'birth' && printf '%s' "$OUT" | grep -q 'into work' \
+   && printf '%s' "$OUT" | grep -q 'archive'; then
+  ok 'events view has birth/into-work/archive types [#render-events]'
+else bad "events types missing: $OUT"; fi
+
+BETA_HASH="$(git rev-parse --short HEAD)"
+expect_out 'events --since <hash> works [#render-events]' events --since "$BETA_HASH"
+if printf '%s' "$OUT" | grep -q 'beta' && ! printf '%s' "$OUT" | grep -q 'alpha'; then
+  ok 'events --since keeps the boundary event only [#render-events]'
+else bad "events --since mismatch: $OUT"; fi
+
+# --- agents view: live presences over .caped/sessions --------------------------
+mkdir -p .caped/sessions
+TS="$(($(date +%s) * 1000 - 50000))"
+printf '{"v":1,"session":"session-s1","agent":"dsh/s1"}\n{"v":1,"seq":1,"t":%d,"role":"user","text":"first prompt alpha"}\n{"v":1,"type":"end"}\n' "$TS" > .caped/sessions/session-s1.jsonl
+expect_out 'agents view renders sessions [#render-agents]' agents
+if printf '%s' "$OUT" | grep -q 'dsh/s1' && printf '%s' "$OUT" | grep -q 'first prompt alpha'; then
+  ok 'agents view shows the agent and first prompt [#render-agents]'
+else bad "agents view mismatch: $OUT"; fi
+
 # Top-level aliases route to the same generator. [#render-stdout]
 plain="$(bash "$CAPED" render plan 2>&1)"
 aliased="$(bash "$CAPED" plan 2>&1)"

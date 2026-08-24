@@ -36,7 +36,7 @@ echo '# src spec' > src/README.md
 git add -A
 git commit -qm "seed" --no-verify
 
-msg() { printf '%b' "$1" > .caped-test-msg; }
+msg() { printf '%b' "$1" > .caped-test-msg; if grep -q '^$' .caped-test-msg; then printf 'Agent: human\n' >> .caped-test-msg; else printf '\nAgent: human\n' >> .caped-test-msg; fi; }
 expect_accept() { # <name> — commit staged changes with .caped-test-msg, want hook accept
   if git commit -q -F .caped-test-msg >/dev/null 2>&1; then ok "$1"
   else bad "$1 — expected accept, hook rejected"; git reset -q; fi
@@ -91,6 +91,38 @@ expect_accept 'fileless contract with Adhoc + rationale body [#adhoc-id]'
 echo 'note' >> notes.txt; git add notes.txt
 msg 'free zone note\n'
 expect_accept 'path outside the registry needs no trailers [#free-paths]'
+
+# --- Identity: Agent: ----------------------------------------------------------
+
+echo 'n1' >> notes.txt; git add notes.txt
+printf 'plain commit\n' > .caped-test-msg
+expect_reject 'commit without Agent trailer [#agent-trailer]'
+
+echo 'n2' >> notes.txt; git add notes.txt
+printf 'bad agent\n\nAgent: two words\n' > .caped-test-msg
+expect_reject 'Agent with whitespace rejects [#agent-trailer]'
+
+echo 'n3' >> notes.txt; git add notes.txt
+printf 'agent work\n\nAgent: dsh/486d59\n' > .caped-test-msg
+expect_accept 'harness/id Agent passes [#agent-trailer]'
+
+echo 'n4' >> notes.txt; git add notes.txt
+printf 'human work\n\nAgent: human\n' > .caped-test-msg
+expect_accept 'Agent: human passes [#agent-trailer]'
+
+# --- Residency: home vs foreign (warn-mode until the plugin writes agent fields) ---
+
+mkdir -p .caped/sessions
+printf '{"v":1,"session":"session-r1","root":"x","agent":"dsh/r1"}\n' > .caped/sessions/session-r1.jsonl
+echo 'n5' >> notes.txt; git add notes.txt
+printf 'resident work\n\nAgent: dsh/r1\n' > .caped-test-msg
+expect_accept 'resident session id passes [#residency-check]'
+echo 'n6' >> notes.txt; git add notes.txt
+printf 'foreign work\n\nAgent: kimi-cli/xy\n' > .caped-test-msg
+expect_reject_matching 'foreign session id without presence fails [#residency-check]' 'not your repo'
+echo 'n7' >> notes.txt; git add notes.txt
+printf 'escaped work\n\nAgent: kimi-cli/xy@caped\n' > .caped-test-msg
+expect_accept '@<home> escape passes [#residency-check]'
 
 # --- Registry: longest prefix wins ------------------------------------------
 

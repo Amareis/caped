@@ -41,6 +41,7 @@ git commit -qF - <<'FIX'
 идея ex1
 
 Idea: ex1
+Agent: human
 FIX
 
 git mv ideas/ex1.md changes/ex1.md
@@ -48,6 +49,7 @@ git commit -qF - <<'FIX'
 в работу ex1
 
 Change: ex1
+Agent: human
 FIX
 
 echo note >> changes/ex1.md; git add changes/ex1.md
@@ -55,6 +57,7 @@ git commit -qF - <<'FIX'
 работа ex1
 
 Change: ex1
+Agent: human
 FIX
 
 git rm -q changes/ex1.md
@@ -63,6 +66,7 @@ git commit -qF - <<'FIX'
 
 Change: ex1
 Archives: ex1
+Agent: human
 FIX
 
 printf '\nExtra prose outside the section.\n' >> README.md
@@ -75,6 +79,7 @@ git commit -qF - <<'FIX'
 Adhoc: fix-wording
 Behavior: contract
 Spec: README.md
+Agent: human
 FIX
 
 printf -- '---\nname: ex2\nsummary: events fixture 2\n---\n' > ideas/ex2.md
@@ -83,6 +88,7 @@ git commit -qF - <<'FIX'
 идея ex2
 
 Idea: ex2
+Agent: human
 FIX
 echo tweak >> ideas/ex2.md
 git add ideas/ex2.md
@@ -90,6 +96,7 @@ git commit -qF - <<'FIX'
 правка идеи ex2
 
 Idea: ex2
+Agent: human
 FIX
 
 printf -- '---\nname: _backlog\nsummary: backlog fixture\n---\n' > ideas/_backlog.md
@@ -98,12 +105,14 @@ git commit -qF - <<'FIX'
 идея _backlog
 
 Idea: _backlog
+Agent: human
 FIX
 echo '- note' >> ideas/_backlog.md
 git add ideas/_backlog.md
 git commit -qF - <<'FIX'
 бэклог: note
 
+Agent: human
 FIX
 
 printf -- '---\nname: ex3\nsummary: events fixture 3\n---\n' > ideas/ex3.md
@@ -112,6 +121,7 @@ git commit -qF - <<'FIX'
 идея ex3
 
 Idea: ex3
+Agent: human
 FIX
 git rm -q ideas/ex3.md
 git commit -qF - <<'FIX'
@@ -120,6 +130,7 @@ git commit -qF - <<'FIX'
 Причина: фикстура снятия.
 
 Archives: ex3
+Agent: human
 FIX
 
 OUT="$(bash "$CAPED" events)"

@@ -62,6 +62,7 @@ EOF
 идея $name: $summary
 
 Idea: $name
+Agent: ${CAPED_AGENT:-human}
 EOF
     echo "ok: ideas/$name.md born (Idea: $name)"
     ;;
@@ -74,6 +75,7 @@ EOF
 в работу: $name
 
 Change: $name
+Agent: ${CAPED_AGENT:-human}
 EOF
     echo "ok: $name taken into work (Change: $name)"
     ;;
@@ -107,6 +109,7 @@ EOF
 
 Change: $name
 Archives: $name
+Agent: ${CAPED_AGENT:-human}
 EOF
     echo "ok: $name archived (Change + Archives)"
     ;;

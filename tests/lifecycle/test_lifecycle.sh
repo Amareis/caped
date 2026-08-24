@@ -28,6 +28,7 @@ git commit -qF - <<'EOF'
 идея _backlog
 
 Idea: _backlog
+Agent: human
 EOF
 
 bash "$CAPED" idea gamma "a lifecycle fixture"
@@ -48,6 +49,7 @@ git commit -qF - <<'EOF'
 работа gamma: вопрос
 
 Change: gamma
+Agent: human
 EOF
 
 bash "$CAPED" archive gamma

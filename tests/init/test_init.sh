@@ -78,7 +78,7 @@ else
   ok 'linked hook rejects a trailer-less commit on an enforced cap [#linked-install]'
 fi
 
-printf 'internal spec tweak\n\nBehavior: internal\n' > .git/CAPED_MSG
+printf 'internal spec tweak\n\nBehavior: internal\nAgent: human\n' > .git/CAPED_MSG
 if git commit -qF .git/CAPED_MSG >/dev/null 2>&1; then
   ok 'linked hook accepts Behavior: internal [#linked-install]'
 else
