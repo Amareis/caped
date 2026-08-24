@@ -94,6 +94,49 @@ mkdir -p ideas changes .caped .caped/hooks .caped/events
 for d in ideas changes; do
   [ -e "$d/.gitkeep" ] || { : > "$d/.gitkeep"; echo "ok: $d/.gitkeep"; }
 done
+# The archive gate deposits deferred questions into ideas/_backlog.md — seed
+# the skeleton so the first `caped archive` does not die on a missing target.
+if [ ! -f ideas/_backlog.md ]; then
+  cat > ideas/_backlog.md <<'EOF'
+---
+name: _backlog
+summary: Reserved pseudo-idea — the backlog of deferred "future" thoughts; entries live as bullets in Requirements (render reqs indexes them); caped archive deposits land here; never taken into work
+depends_on: []
+spawned_from: null
+---
+
+## Why
+
+Middle ground between "an open question in a change" (dies with the archive) and "a whole idea" (too much ceremony for one future thought). Reserved service name: it sorts first and is NEVER taken into work — picking an entry up means spawning a real idea from it.
+
+## Context
+
+Entry format (one line): thought | from <change/idea> | date | (status). The showcase is forward-only: an entry that got applied or transferred is REMOVED — the trace lives in git history, a (status) tag marks a line for cleanup, not a ledger.
+
+## Requirements
+
+-
+
+## Decisions
+
+-
+
+## Rejected alternatives
+
+-
+
+## Provenance
+
+Seeded by caped init.
+
+## Open questions
+
+-
+EOF
+  echo "ok: ideas/_backlog.md seeded (archive deposit target)"
+else
+  echo "ok: ideas/_backlog.md already exists, untouched"
+fi
 
 # --- 5. AGENTS.md pointer ---------------------------------------------------
 if [ ! -f AGENTS.md ]; then

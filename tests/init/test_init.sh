@@ -62,6 +62,24 @@ else
   bad 'post-commit shim missing for the event feed [#linked-install]'
 fi
 
+# --- init seeds the archive deposit target -------------------------------------
+
+if [ -f ideas/_backlog.md ]; then
+  ok 'init seeds ideas/_backlog.md [#init-idempotent]'
+else
+  bad 'init seeds ideas/_backlog.md [#init-idempotent] — file missing'
+fi
+
+missing_sec=0
+for sec in "Why" "Context" "Requirements" "Decisions" "Rejected alternatives" "Provenance" "Open questions"; do
+  grep -q "^## $sec\$" ideas/_backlog.md || missing_sec=1
+done
+if [ "$missing_sec" -eq 0 ]; then
+  ok 'seeded _backlog carries the canonical section set [#init-idempotent]'
+else
+  bad 'seeded _backlog carries the canonical section set [#init-idempotent] — sections missing'
+fi
+
 # --- the linked hook chain really enforces -----------------------------------
 
 echo '# fixture spec' > README.md
@@ -114,10 +132,17 @@ fi
 
 # --- idempotence --------------------------------------------------------------
 
+printf -- '- sentinel backlog line\n' >> ideas/_backlog.md
 if bash "$REPO_ROOT/scripts/caped.sh" init >/dev/null 2>&1; then
   ok 're-running linked init repairs and exits 0 [#linked-install]'
 else
   bad 're-running linked init repairs and exits 0 [#linked-install] — non-zero exit'
+fi
+
+if grep -q 'sentinel backlog line' ideas/_backlog.md; then
+  ok 're-run keeps an existing _backlog.md untouched [#init-idempotent]'
+else
+  bad 're-run keeps an existing _backlog.md untouched [#init-idempotent] — clobbered'
 fi
 
 # --- Report ------------------------------------------------------------------
