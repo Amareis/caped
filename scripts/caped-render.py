@@ -65,7 +65,7 @@ def red(s):
 def shorten(s, n=SUBJECT_MAX):
     return s if len(s) <= n else s[: n - 1] + "…"
 
-VIEW_FILES = {"plan": "plan.md", "history": "history.md", "coverage": "coverage.txt", "reqs": "reqs.md", "changelog": "changelog.md"}
+VIEW_FILES = {"plan": "plan.md", "history": "history.md", "coverage": "coverage.txt", "reqs": "reqs.md", "changelog": "changelog.md", "events": "events.md", "agents": "agents.md"}
 
 
 def die(msg):
@@ -230,7 +230,22 @@ def plan_data():
             recent.append({"date": a["date"], "hash": a["hash"], "subject": a["subject"], "spec": a["spec"]})
         if len(recent) >= 5:
             break
-    return {"view": "plan", "in_work": in_work, "ideas": ideas, "recent_adhoc": recent}
+    return {"view": "plan", "in_work": in_work, "ideas": ideas, "recent_adhoc": recent, "neighbors": neighbors_data()}
+
+
+def neighbors_data():
+    """caped.neighbors — multi-repo topology (TAB: name, path, role). [#neighbor-relay]"""
+    f = ROOT / "caped.neighbors"
+    rows = []
+    if f.is_file():
+        for line in f.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split("\t")
+            if len(parts) >= 3:
+                rows.append({"name": parts[0], "path": parts[1], "role": "\t".join(parts[2:])})
+    return rows
 
 
 def plan_row_lines(r):
@@ -266,6 +281,10 @@ def view_plan_text(data):
         lines.append("  (none)")
     for r in data["ideas"]:
         lines.extend(plan_row_lines(r))
+    if data.get("neighbors"):
+        lines.append(dim("-- neighbors --"))
+        for n in data["neighbors"]:
+            lines.append(f"  {bold(n['name'])}  {n['path']}  {dim(n['role'])}")
     if data.get("recent_adhoc"):
         lines.append(dim("-- recent fileless decisions --"))
         for a in data["recent_adhoc"]:
@@ -334,6 +353,7 @@ def adhoc_events():
 def history_data():
     born, archived = history_events()
     alias = rename_aliases()
+    agents = _agent_map()
     live = {}
     for d, st in (("ideas", "idea"), ("changes", "in work")):
         dd = ROOT / d
@@ -364,6 +384,7 @@ def history_data():
                 "archived": {"date": a[0], "hash": a[1]} if a else None,
                 "status": status,
                 "was": b[2] if b and b[2] != n else None,
+                "agent": agents.get(resolve(n, alias), "unknown"),
                 "summary": archived_summary(n, a[2]) if a else "",
             }
         )
@@ -384,7 +405,8 @@ def view_history_text(data):
         else:
             acell = f"- {r['status']}"  # idea / in work / ? (drift, visible by design)
         old = f" (was: {r['was']})" if r["was"] else ""
-        lines.append(f"  {bold(r['name'])}{' ' * max(1, 22 - len(r['name']))} {dim(bcell):<19} {dim(acell):<19} {r['summary']}{old}")
+        who = f" by {r['agent']}" if r.get("agent") and r["agent"] != "unknown" else ""
+        lines.append(f"  {bold(r['name'])}{' ' * max(1, 22 - len(r['name']))} {dim(bcell):<19} {dim(acell):<19} {r['summary']}{old}{dim(who)}")
     lines.append(dim(f"-- adhoc decisions (fileless contract commits; {data['adhoc']['ids']} id(s), {data['adhoc']['over2']} cluster(s) over 2) --"))
     if not data["adhoc"]["clusters"]:
         lines.append("  (none)")
@@ -395,6 +417,150 @@ def view_history_text(data):
             lines.append(f"    {dim(a['date'] + ' ' + a['hash'])}  {bold(a['subject'])}")
             if a.get("excerpt"):
                 lines.append(dim(f"        {a['excerpt']}"))
+    return "\n".join(lines)
+
+
+def _agent_map():
+    """Newest-first: each entity trailer name gets the Agent: of its newest commit."""
+    log = run(["git", "log", "--date=short", f"--format={RS}%H{FS}%ad{FS}%B"])
+    agent = {}
+    for rec in log.split(RS):
+        rec = rec.strip("\n")
+        if not rec:
+            continue
+        parts = rec.split(FS, 2)
+        if len(parts) < 3:
+            continue
+        body = parts[2]
+        a = re.search(r"^Agent:\s*(\S+)\s*$", body, re.M)
+        for m in re.finditer(r"^(?:Idea|Change|Archives|Adhoc):\s*(\S+)\s*$", body, re.M):
+            name = m.group(1)
+            if name not in agent:
+                agent[name] = a.group(1) if a else "unknown"
+    return agent
+
+
+# --- events (incremental tracker timeline) -----------------------------------
+
+def events_data(since=None):
+    """Chronological tracker event timeline from git log trailers: birth, edit,
+    into work, work, archive, withdrawn, adhoc — each with its agent. [#render-events]"""
+    since_date = None
+    allow = None
+    if since:
+        if re.match(r"^[0-9a-f]{4,40}$", since):
+            full = run(["git", "rev-parse", "--verify", "--quiet", since], check=False).strip()
+            if not full:
+                die(f"--since: unknown commit '{since}'")
+            allow = set(run(["git", "rev-list", f"{full}..HEAD"], check=False).split())
+            allow.add(full)  # the boundary commit itself is included
+        else:
+            since_date = since.strip()
+    log = run(["git", "log", "--date=short", f"--format={RS}%H{FS}%ad{FS}%B"])
+    rows = []
+    for rec in log.split(RS):
+        rec = rec.strip("\n")
+        if not rec:
+            continue
+        parts = rec.split(FS, 2)
+        if len(parts) < 3:
+            continue
+        h, d, body = parts
+        if allow is not None and h not in allow:
+            continue
+        if since_date and d < since_date:
+            continue
+        if not body:
+            continue
+        ns = run(["git", "show", "--name-status", "-M", "--format=", h], check=False)
+        agent = (re.search(r"^Agent:\s*(\S+)\s*$", body, re.M) or [None, "unknown"])[1]
+        for m in re.finditer(r"^(Idea|Change|Archives|Adhoc):\s*(\S+)\s*$", body, re.M):
+            kind, ent = m.group(1), m.group(2)
+            if kind == "Archives":
+                typ = "withdrawn" if re.search(r"^D\tideas/" + re.escape(ent) + r"\.md$", ns, re.M) else "archive"
+            elif kind == "Idea":
+                typ = "birth" if re.search(r"^A\tideas/" + re.escape(ent) + r"\.md$", ns, re.M) else "edit"
+            elif kind == "Change":
+                typ = "into work" if re.search(r"^R\d*\tideas/" + re.escape(ent) + r"\.md\tchanges/" + re.escape(ent) + r"\.md$", ns, re.M) else "work"
+            else:
+                typ = "adhoc"
+            rows.append({
+                "date": d, "hash": h[:8], "type": typ,
+                "entity": ent, "agent": agent,
+                "subject": body.strip().splitlines()[0],
+            })
+    rows = rows[-50:]  # default window: the last 50 events (oldest->newest kept)
+    return {"view": "events", "rows": rows, "count": len(rows)}
+
+
+def view_events_text(data):
+    lines = [bold("== events (from git trailers) ==")]
+    if not data["rows"]:
+        lines.append("  (no tracker events yet)")
+    for r in data["rows"]:
+        ag = f"({r['agent']}) " if r["agent"] != "unknown" else ""
+        lines.append(f"  {dim(r['date'] + ' ' + r['hash'])}  {bold(r['type']):<9} {r['entity']:<22} {ag}{r['subject']}")
+    return "\n".join(lines)
+
+
+# --- agents (live presences over .caped/sessions) ----------------------------
+
+def agents_data():
+    """Live agent presences: sessions under .caped/sessions/*.jsonl, alive = no
+    end marker and mtime under 10 minutes at read time. [#render-agents]"""
+    sdir = ROOT / ".caped" / "sessions"
+    rows = []
+    if sdir.is_dir():
+        import time
+        import datetime as _dt
+        now = time.time()
+        for p in sorted(sdir.glob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True):
+            try:
+                lines = p.read_text(encoding="utf-8").splitlines()
+                hdr = json.loads(lines[0])
+            except Exception:
+                continue
+            if not lines:
+                continue
+            sid = str(hdr.get("session", p.stem))
+            agent = str(hdr.get("agent", ""))
+            ended = any('"end"' in ln for ln in lines[1:])
+            first, started = "", None
+            for ln in lines[1:]:
+                try:
+                    j = json.loads(ln)
+                except Exception:
+                    continue
+                if started is None and j.get("t"):
+                    started = j.get("t")
+                if not first and j.get("role") == "user" and j.get("text"):
+                    first = str(j["text"])[:60]
+                    break
+            age = now - p.stat().st_mtime
+            if ended:
+                status = "завершена"
+            elif age < 600:
+                status = "жив"
+            else:
+                status = f"пропал (молчит {int(age // 60)}м)"
+            start = ""
+            if started:
+                start = _dt.datetime.fromtimestamp(started / 1000).strftime("%H:%M")
+            rows.append({
+                "session": sid, "agent": agent or sid[:8],
+                "status": status, "start": start, "first": first, "age_min": int(age // 60),
+            })
+    return {"view": "agents", "rows": rows, "count": len(rows)}
+
+
+def view_agents_text(data):
+    lines = [bold("== agents (live sessions over .caped/sessions) ==")]
+    if not data["rows"]:
+        lines.append("  (no sessions yet — the plugin writes .caped/sessions/*.jsonl)")
+    for r in data["rows"]:
+        one = f" | с {r['start']}" if r["start"] else ""
+        pr = f" | «{r['first']}…»" if r["first"] else ""
+        lines.append(f"  {bold(r['agent'])}  {r['status']}{one}{pr}")
     return "\n".join(lines)
 
 
@@ -568,8 +734,8 @@ def view_changelog_text(data):
     return "\n".join(lines)
 
 
-VIEW_DATA = {"plan": plan_data, "history": history_data, "coverage": coverage_data, "reqs": reqs_data, "changelog": changelog_data}
-VIEW_TEXT = {"plan": view_plan_text, "history": view_history_text, "coverage": view_coverage_text, "reqs": view_reqs_text, "changelog": view_changelog_text}
+VIEW_DATA = {"plan": plan_data, "history": history_data, "coverage": coverage_data, "reqs": reqs_data, "changelog": changelog_data, "events": events_data, "agents": agents_data}
+VIEW_TEXT = {"plan": view_plan_text, "history": view_history_text, "coverage": view_coverage_text, "reqs": view_reqs_text, "changelog": view_changelog_text, "events": view_events_text, "agents": view_agents_text}
 
 GENERATED_HEADER = "<!-- generated by `caped render --write` — do not edit, regenerate instead -->\n\n"
 
@@ -726,10 +892,21 @@ def main(argv):
 
     write = "--write" in argv
     as_json = "--json" in argv
-    names = [a for a in argv if not a.startswith("-")]
-    unknown = [a for a in argv if a.startswith("-") and a not in ("--write", "--json")]
+    since = None
+    rest = []
+    it = iter(argv)
+    for a in it:
+        if a == "--since":
+            try:
+                since = next(it)
+            except StopIteration:
+                die("--since needs a value (commit hash or YYYY-MM-DD)")
+        else:
+            rest.append(a)
+    names = [a for a in rest if not a.startswith("-")]
+    unknown = [a for a in rest if a.startswith("-") and a not in ("--write", "--json")]
     if unknown:
-        die(f"unknown flag(s): {' '.join(unknown)} (have: --write, --clean, --json)")
+        die(f"unknown flag(s): {' '.join(unknown)} (have: --write, --json, --clean, --since)")
     for n in names:
         if n not in VIEW_DATA:
             die(f"unknown view '{n}' (have: {', '.join(VIEW_DATA)})")
@@ -738,7 +915,7 @@ def main(argv):
 
     outdir = ROOT / ".caped"
     for n in names:
-        data = VIEW_DATA[n]()
+        data = VIEW_DATA[n](since) if n == "events" else VIEW_DATA[n]()
         text = VIEW_TEXT[n](data)
         print(json.dumps(data, ensure_ascii=False, indent=2) if as_json else text)
         if not as_json:
