@@ -6,8 +6,8 @@
 # lines < PIPE_BUF). The consumer cursor is the count of already-consumed
 # lines; a partial trailing line is never produced by << but is skipped on read.
 #
-# Event types (v0): idea-born, idea-edited, taken-into-work, archived, adhoc, contract.
-# (tool-updated arrives with the version-stamp check later.)
+# Event types (v0): idea-born, idea-edited, taken-into-work, archived, adhoc, contract,
+# backlog-edited. (tool-updated arrives with the version-stamp check later.)
 #
 # Dispatch: for each event, if .caped/hooks/<event> exists and is executable it
 # runs with CAPED_EVENT, CAPED_ENTITY, CAPED_COMMIT, CAPED_ROOT in the env.
@@ -55,6 +55,11 @@ post_commit() { # called by the post-commit shim; reads HEAD, emits the dominant
     emit adhoc; return 0; fi
   if printf '%s\n' "$body" | grep -q '^Behavior: contract'; then
     emit contract; return 0; fi
+  # backlog-edited: _backlog is Idea:-exempt, but its edits are still facts for
+  # parallel agents (deposits, line maintenance). Archive deposits are already
+  # covered by the dominant `archived` event above — only standalone edits land here.
+  if git show --name-status --format= "$h" | grep -q "^M\tideas/_backlog.md$"; then
+    emit backlog-edited "_backlog"; return 0; fi
 }
 
 events_cmd() { # caped events [--since <n>] — lines after the cursor, no partial tail
