@@ -65,7 +65,8 @@ LIFECYCLE (each event is a separate atomic commit)
                 deletion commit for ideas/<name>.md with trailer Archives: <name>
                 and the reason in the body; history shows 'withdrawn', references
                 (depends_on/spawned_from) keep resolving to the archived entity,
-                '?' stays for real drift only [#idea-archival].
+                '?' stays for real drift only [#idea-archival]; the withdrawal is
+                a feed fact — the shim emits idea-withdrawn [#event-feed].
 
 COMMIT TRAILERS (git trailers, enforced by the commit-msg hook)
 
@@ -267,8 +268,8 @@ COMMANDS
   caped events         — lifecycle event feed by cursor: .caped/events/feed.jsonl
                           (append-only, one line per fact), --since <lines-consumed>;
                           the post-commit shim emits idea-born / idea-edited /
-                          taken-into-work / archived / adhoc / contract /
-                          backlog-edited; the hook writes
+                          taken-into-work / archived / idea-withdrawn / adhoc /
+                          contract / backlog-edited; the hook writes
                           commit-rejected when it rejects a commit; both dispatch
                           versioned .caped/hooks/<event> scripts (repo policy,
                           like git hooks) [#event-feed] [#commit-rejected-event]

@@ -267,7 +267,8 @@ write-only слоем и дрейфует. Критерий границы v0 (�
 - [#backlog-future-only no-test dump] Витрина бэклога forward-only: применённое/переданное из строк
   убирается — следы живут в гит-истории, а не в записях; (статус) в строке — сигнал к чистке, не журнал.
 - [#event-feed dump] Событийная лента: тул пишет факты жизненного цикла (idea born / idea edited /
-  taken into work / archived / adhoc / contract / backlog edited) и commit-rejected (хук при валидационном
+  taken into work / archived / idea withdrawn / adhoc / contract / backlog edited) и commit-rejected (хук при
+  валидационном
   отказе — факт ПОСЛЕ, гейт остаётся
   ДО) в `.caped/events/feed.jsonl` (append-only, одна строка = один write(2)),
 - [#commit-rejected-event dump] Отказ хука — факт попытки: commit-msg при валидационных ошибках пишет
@@ -304,6 +305,8 @@ write-only слоем и дрейфует. Критерий границы v0 (�
 - [#idea-archival dump] Идея может быть архивирована напрямую (снята без взятия в работу): удаление
   `ideas/<name>.md` обязано нести `Archives: <name>` (причина — в теле коммита); история показывает `withdrawn`,
   рефереры (`depends_on`/`spawned_from`) резолвятся как архивные, «?» остаётся только для реального дрейфа.
+  Снятие — факт ленты: шим пишет событие `idea-withdrawn` ({#event-feed}) — снятие/релей видимы
+  параллельным агентам.
 - [#registry-mutation no-test dump] Мутации реестра: рождение/сплит/мерж капов — contract-коммит, трогающий
   `caped.registry`.
 - [#behavior-trailer dump] Класс изменения: коммит, трогающий enforced-капу, несёт `Behavior:
