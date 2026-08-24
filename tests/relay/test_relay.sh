@@ -123,6 +123,26 @@ if git -C "$NB_DIR" log --format=%B -1 | grep -q '^Agent: dsh@home$'; then
   ok 'direct relay commit is home-marked too [#neighbor-relay]'
 else bad 'direct relay commit not home-marked'; fi
 
+# Schema normalization: a relay from a foreign (non-canonical) schema arrives valid.
+cat > ideas/noncanon.md <<'EOF'
+---
+name: noncanon
+summary: noncanonical relay fixture
+---
+
+## Why
+
+w
+EOF
+bash "$CAPED" relay nb noncanon >/dev/null
+if [ -f "$NB_DIR/ideas/noncanon.md" ] && grep -q '^## Open questions' "$NB_DIR/ideas/noncanon.md" \
+   && grep -q '^## Requirements' "$NB_DIR/ideas/noncanon.md"; then
+  ok 'relay normalizes missing canonical sections [#neighbor-relay]'
+else bad 'relay did not normalize the schema'; fi
+if (cd "$NB_DIR" && bash "$REPO_ROOT/scripts/caped.sh" check >/dev/null 2>&1); then
+  ok 'relayed idea passes the receiver check [#neighbor-relay]'
+else bad 'relayed idea fails the receiver check'; fi
+
 echo
 echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ]

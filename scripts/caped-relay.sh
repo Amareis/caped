@@ -66,6 +66,18 @@ mkdir -p "$path/ideas"
     "$home" "$ours" "$nb" "$name" "$(date +%F)" "$ROOT"
 } > "$path/ideas/$name.md"
 
+# Canonical schema: the receiver's caped check expects the full section set.
+# Relays from foreign schemas must arrive valid (both live inbound relays from
+# kudach needed manual repair). Missing sections are appended empty; then the
+# receiver's caped check runs BEFORE the commit — a red check kills the relay.
+for sec in "Why" "Context" "Requirements" "Decisions" "Rejected alternatives" "Provenance" "Open questions"; do
+  grep -q "^## $sec\$" "$path/ideas/$name.md" || printf '\n## %s\n\n-\n' "$sec" >> "$path/ideas/$name.md"
+done
+RELAY_CAPED="$(cd "$(dirname "$0")" && pwd)/caped.sh"
+if ! (cd "$path" && bash "$RELAY_CAPED" check >/dev/null 2>&1); then
+  die "relaid idea failed $path's caped check — canonical schema not achieved; fix ideas/$name.md first"
+fi
+
 git -C "$path" add "ideas/$name.md"
 git -C "$path" commit -q -F - <<EOF
 идея $name: релей из $home ($ours)
