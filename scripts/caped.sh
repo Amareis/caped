@@ -278,7 +278,7 @@ COMMANDS
                           or duplicated slugs ('[#<slug> no-test]' exempts)
   caped events         — lifecycle event feed by cursor: .caped/events/feed.jsonl
                           (append-only, one line per fact), --since <lines-consumed>;
-                          the post-commit shim emits idea-born / idea-edited /
+                          the post-commit shim emits idea-born / relayed / idea-edited /
                           taken-into-work / archived / idea-withdrawn / adhoc /
                           contract / backlog-edited; the hook writes
                           commit-rejected when it rejects a commit; both dispatch
@@ -317,7 +317,8 @@ COMMANDS
                           (Agent: <id>@<home>, Behavior: internal), the local copy
                           is withdrawn (Archives:) unless --keep; UNCOMMITTED ideas
                           are direct-sent (only the neighbor commit, zero home
-                          commits). [#neighbor-relay]
+                          commits); the arrival is a `relayed` feed event
+                          (Agent: <id>@<home> mark). [#neighbor-relay]
   caped render [view] — derived views (plan, history, coverage, reqs,
                           changelog, events, agents); top-level aliases: caped plan |
                           history | coverage | reqs | changelog. Printed to
