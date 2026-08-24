@@ -16,15 +16,9 @@ spawned_from: null
 ## Requirements
 
 - Конфиг-слой caped (языковые списки маркеров requirement-format O3/O2, пути по умолчанию, предпочтения плагина) — «конфиги сами будущая идея» | from question-lifecycle | 2026-08-23
-- События состояний проверок (trace-red/check-red) как типы ленты — возможная точка расширения caped-event-hooks, потребитель при появлении | from caped-event-hooks | 2026-08-23
-- ПРОМОУТ: команда `caped archive` (автодепозит OQ в _backlog + гейт в команде) → идея `lifecycle-cmds` (2026-08-23, расширена idea|work) | from question-lifecycle | 2026-08-23
-- ПРОМОУТ: tool-updated и версия тула (встроенный `render changelog` + версия-константа + авгоген по событию) → идея `tool-changelog` (2026-08-23) | from caped-event-hooks | 2026-08-23
-- ПРОМОУТ: Команда «caped version» (печать версии-строки из бандла + --path) → идея `caped-version` (2026-08-23) | from tool-changelog | 2026-08-23
-- Инцидент 2026-08-23 (архив change-show при красном гейте): сломанный сценарий в той же правке; причин без проверки в одной цепочке с run-tests. Урок: гейт НЕ гонится в одной команде с архивом — красный ДО архива = стоп и фикс | from session-103 (оценщик) | 2026-08-23
-- Калибровочные данные pass@N (мини-луп vs реальный dsh) и dsh-профиль-пакет для фикстур — ждут ключа провайдера в окружении; guard-путь готов (tests/secretary/test_calibration.sh), первым прогоном с ключом данные лягут сюда | from e2e-harness-realism | 2026-08-23
-- Урок-инцидент (повтор, 2026-08-23): хук отклоняет коммит, а я продолжаю по «echo OK»/мимо stderr — затем «жду» и путаю состояние. Правило: после каждого git commit в цепочке — явный rc/`git log -1` до следующего шага (УЧТЕНО в практике) | from session-103 | 2026-08-23
-- ПРОМОУТ: видимость rejected-commit — событие `commit-rejected` от хука в ленту (туловый вариант) → идея `commit-rejected-event` (2026-08-23); плагин-детект тул-логов остаётся на их стороне (см. HANDED OFF-рядом) | from session-103 | 2026-08-23
-- HANDED OFF → caped-context: идея `e2e-scenario-adopt` (ba782c0, 2026-08-23) — приёмка секретарских e2e-сценариев их раннером (промпт-параметризация, git-ассерты, pass@N) | from e2e-harness-realism | 2026-08-23
+- События состояний проверок (trace-red/check-red) как типы ленты — возможная точка расширения капед-событий, потребитель при появлении | from caped-event-hooks | 2026-08-23
+- Калибровочные данные pass@N (мини-луп vs реальный dsh) и dsh-профиль-пакет для фикстур — ждут ключа провайдера в окружении; guard-путь готов (tests/secretary/test_calibration.sh) | from e2e-harness-realism | 2026-08-23
+- Видимость rejected-commit для плагина: детект «commit-msg: rule violations» в тул-логе сессии → наг в следующем ходу (нужный туловый факт уже есть — идея commit-rejected-event) | from session-103 | 2026-08-23
 
 ## Decisions
 
