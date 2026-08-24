@@ -310,10 +310,14 @@ COMMANDS
                           Change:/Archives: [#lifecycle-cmds]
   caped relay <nb> <idea> — the ONLY door into a neighbor repo: topology from
                           caped.neighbors (name<TAB>path<TAB>role; plan shows it,
-                          check validates it), the idea travels with
-                          spawned_from: null + a Handoff note, the neighbor commit
-                          is home-marked (Agent: <id>@<home>), the local copy is
-                          withdrawn (Archives:) unless --keep [#neighbor-relay]
+                          check validates it). Sender id REQUIRED (CAPED_AGENT/
+                          --agent; no default — manual runs pass CAPED_AGENT=human
+                          explicitly). Committed ideas travel spawned_from: null +
+                          a Handoff note, the neighbor commit is home-marked
+                          (Agent: <id>@<home>, Behavior: internal), the local copy
+                          is withdrawn (Archives:) unless --keep; UNCOMMITTED ideas
+                          are direct-sent (only the neighbor commit, zero home
+                          commits). [#neighbor-relay]
   caped render [view] — derived views (plan, history, coverage, reqs,
                           changelog, events, agents); top-level aliases: caped plan |
                           history | coverage | reqs | changelog. Printed to
