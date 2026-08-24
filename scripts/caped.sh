@@ -119,7 +119,12 @@ CAPABILITY REGISTRY (caped.registry, TAB-separated: name, prefix, state, spec fi
   The root README.md is the root capability — the project as one big
   feature; cross-cutting contract changes carry Spec: README.md.
   Rollout: enforcement starts advisory; flipping to blocking is a
-  separate deliberate act after calibration.
+  separate deliberate act after calibration. The hook reads caped.registry
+  from the WORK TREE — enforcement flips the moment the file changes, before
+  any commit. Flip procedure: prepare as many commits as you like while the
+  cap is NOT enforced; then ONE contract commit turns it (cap README +
+  markers + registry + referrer cleanup, Behavior: contract + Spec:); don't
+  touch the registry early [#registry-mutation].
   Paths outside the registry are ignored by design [#free-paths].
   Overlapping prefixes: longest prefix wins [#longest-prefix].
   A cap is a decision territory, not necessarily code — business caps
@@ -237,6 +242,7 @@ DISCIPLINE
     neither a definition nor a covering quote [#trace-defs]. Marker
     attributes: 'no-test' exempts from coverage [#trace-no-test], 'dump'
     marks the rule agent-facing — such rules MUST appear in this dump
+    (syntax: attributes live INSIDE the brackets — '- [#<slug> no-test dump]')
     [#trace-dump-attr], trace fails on 'undumped' otherwise
     [#trace-undumped]. Run `caped trace` before archiving a change — a red
     trace blocks the archive [#trace-checker].
@@ -274,7 +280,12 @@ COMMANDS
                           slug-first bullets ('- [#<slug>] ...') in enforced
                           spec files (a marker quoted in prose is NOT a def),
                           refs are the same markers in all tracked files
-                          except spec files; fails on uncovered, dangling
+                          except spec files — ANY tracked file counts (comments,
+                          prose, URLs): the bracket-hash-slug pattern anywhere is
+                          a ref, so avoid it outside marker contexts (test
+                          comments are a legitimate ref surface by
+                          [#trace-refs]); check guards content/front-matter,
+                          trace guards coverage; fails on uncovered, dangling
                           or duplicated slugs ('[#<slug> no-test]' exempts)
   caped events         — lifecycle event feed by cursor: .caped/events/feed.jsonl
                           (append-only, one line per fact), --since <lines-consumed>;
