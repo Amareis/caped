@@ -133,6 +133,15 @@ Archives: ex3
 Agent: human
 FIX
 
+printf -- '---\nname: ex4\nsummary: relayed fixture\n---\n' > ideas/ex4.md
+git add ideas/ex4.md
+git commit -qF - <<'FIX'
+идея ex4: релей с чужого дома
+
+Idea: ex4
+Agent: kimi-cli/aaaa@elsewhere
+FIX
+
 OUT="$(bash "$CAPED" events)"
 case "$OUT" in
   *'idea-born'*'ex1'*) ok 'idea-born event in the feed [#event-feed]' ;;
@@ -161,6 +170,10 @@ esac
 case "$OUT" in
   *'idea-withdrawn'*'ex3'*) ok 'idea-withdrawn event in the feed [#idea-archival]' ;;
   *) bad "idea-withdrawn missing: $OUT" ;;
+esac
+case "$OUT" in
+  *'relayed'*'ex4'*) ok 'relayed event in the feed for an @home-marked birth [#event-feed]' ;;
+  *) bad "relayed missing: $OUT" ;;
 esac
 
 N="$(wc -l < .caped/events/feed.jsonl)"

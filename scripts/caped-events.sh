@@ -6,7 +6,7 @@
 # lines < PIPE_BUF). The consumer cursor is the count of already-consumed
 # lines; a partial trailing line is never produced by << but is skipped on read.
 #
-# Event types (v0): idea-born, idea-edited, taken-into-work, archived,
+# Event types (v0): idea-born, relayed, idea-edited, taken-into-work, archived,
 # idea-withdrawn, adhoc, contract, backlog-edited. (tool-updated arrives with the
 # version-stamp check later.)
 #
@@ -47,7 +47,12 @@ post_commit() { # called by the post-commit shim; reads HEAD, emits the dominant
   if [ -n "$ent" ] && git show --name-status --format= "$h" | grep -q "^D\tideas/$ent.md$"; then
     emit idea-withdrawn "$ent"; return 0; fi
   ent="$(printf '%s\n' "$body" | sed -n 's/^Idea: \([^ ]*\)/\1/p' | head -1)"
+  ag="$(printf '%s\n' "$body" | sed -n 's/^Agent: \([^ ]*\)/\1/p' | head -1)"
   if [ -n "$ent" ] && git show --name-status --format= "$h" | grep -q "^A\tideas/$ent.md$"; then
+    # A relayed idea arrives stamped Agent: <id>@<home> — a birth with the
+    # @home suffix is `relayed`, not a local born.
+    if printf '%s' "$ag" | grep -q '@'; then
+      emit relayed "$ent"; return 0; fi
     emit idea-born "$ent"; return 0; fi
   if [ -n "$ent" ] && git show --name-status --format= "$h" | grep -q "^M\tideas/$ent.md$"; then
     emit idea-edited "$ent"; return 0; fi
