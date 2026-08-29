@@ -287,9 +287,13 @@ COMMANDS
                           [#adhoc-id]
   caped trace         — requirement<->test marker balance: defs are
                           slug-first bullets ('- [#<slug>] ...') in enforced
-                          spec files (a marker quoted in prose is NOT a def),
-                          refs are the same markers in all tracked files
-                          except spec files — ANY tracked file counts (comments,
+                          spec files (a marker quoted in prose is NOT a def;
+                          declared/legacy caps are 'a spec without trace' —
+                          their markers are neither defs nor refs, a ref
+                          naming such a slug dangles with a flip-to-enforced
+                          hint), refs are the same markers in all tracked
+                          files except spec files of ANY cap state — ANY other
+                          tracked file counts (comments,
                           prose, URLs): the bracket-hash-slug pattern anywhere is
                           a ref, so avoid it outside marker contexts (test
                           comments are a legitimate ref surface by
