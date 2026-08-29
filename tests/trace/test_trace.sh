@@ -82,6 +82,24 @@ expect_pass 'balanced defs and refs pass [#trace-checker]'
 new_repo "Rule one ${MK}alpha], said inline.\n" "case alpha ${MK}alpha]\n"
 expect_fail_matching 'prose marker is not a def — ref dangles [#trace-defs]' 'dangling'
 
+# A declared cap is "a spec without trace": its markers are neither defs nor
+# refs — the balance stays green while the enforced cap is balanced. [#trace-defs]
+new_repo "- ${MK}alpha] Rule one.\n" "case alpha ${MK}alpha]\n"
+printf 'tech\tsrc/tech/\tdeclared\tsrc/tech/README.md\n' >> caped.registry
+mkdir -p src/tech
+printf -- "- ${MK}delta] Advisory rule.\n" > src/tech/README.md
+git add -A; git commit -qm declared --no-verify
+expect_pass 'markers of a declared-cap spec are neither defs nor refs [#trace-defs]'
+
+# A test ref naming a slug whose spec belongs to a declared cap dangles —
+# with a hint that points at the cap state, not "defined in no spec". [#trace-refs]
+new_repo "- ${MK}alpha] Rule one.\n" "case alpha ${MK}alpha]\ncase delta ${MK}delta]\n"
+printf 'tech\tsrc/tech/\tdeclared\tsrc/tech/README.md\n' >> caped.registry
+mkdir -p src/tech
+printf -- "- ${MK}delta] Advisory rule.\n" > src/tech/README.md
+git add -A; git commit -qm declared --no-verify
+expect_fail_matching 'ref to a declared-cap slug dangles with a declared hint [#trace-refs]' 'declared'
+
 echo
 echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ]
