@@ -151,7 +151,9 @@ fi
 
 mkdir -p "$TMP/boot"
 cd "$TMP/boot"
-if bash "$REPO_ROOT/scripts/caped.sh" init myproj >/dev/null 2>&1; then
+if GIT_AUTHOR_NAME='caped test' GIT_AUTHOR_EMAIL=test@caped.dev \
+   GIT_COMMITTER_NAME='caped test' GIT_COMMITTER_EMAIL=test@caped.dev \
+   bash "$REPO_ROOT/scripts/caped.sh" init myproj >/dev/null 2>&1; then
   ok 'bootstrap init <name> succeeds [#init-idempotent]'
 else
   bad 'bootstrap init <name> succeeds [#init-idempotent] — non-zero exit'
@@ -164,6 +166,13 @@ if [ -d myproj/.git ] \
   ok 'bootstrapped repo has git, README skeleton, _backlog, AGENTS.md [#init-idempotent]'
 else
   bad 'bootstrapped repo has git, README skeleton, _backlog, AGENTS.md [#init-idempotent] — piece missing'
+fi
+
+if [ "$(git -C myproj rev-list --count HEAD 2>/dev/null)" = 1 ] \
+  && git -C myproj log --format=%B -1 | grep -q '^Change: init$'; then
+  ok 'bootstrap lands the seed commit with Change: init [#init-idempotent]'
+else
+  bad 'bootstrap lands the seed commit with Change: init [#init-idempotent] — no/bad seed commit'
 fi
 
 if (cd myproj && "$REPO_ROOT/caped" check >/dev/null 2>&1); then
