@@ -267,8 +267,10 @@ COMMANDS
                           an existing file is never touched. With a name argument
                           init BOOTSTRAPS: creates the directory, git init, seeds
                           a README skeleton, then runs the wiring — zero to a
-                          disciplined repo in one command; an existing non-empty
-                          directory is refused (adopt it with the in-repo mode).
+                          disciplined repo in one command; the seed commit
+                          (Change: init, the hook's seed exemption) lands
+                          everything seeded; an existing non-empty directory is
+                          refused (adopt it with the in-repo mode).
   caped check         — structural validation of ideas/ and changes/ [#check-structure]
                           (frontmatter — incl. folded values, a field's text on
                           the next indented line is valid,
