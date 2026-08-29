@@ -10,7 +10,9 @@
 #   - trace stays green with no dangling refs — the tool's own markers
 #     cannot leak through a repo that never vendors the scripts;
 #   - AGENTS.md is seeded and points at the wrapper;
-#   - init stays idempotent.
+#   - init stays idempotent;
+#   - bootstrap mode (init <name>) creates the directory, git repo and README
+#     skeleton, and lands a repo where check is green right away.
 #
 # Fixture markers are built as ${MK}slug] so the REAL repo's trace does not
 # read them as refs; scenario names carry [#linked-install] as coverage.
@@ -144,6 +146,39 @@ if grep -q 'sentinel backlog line' ideas/_backlog.md; then
 else
   bad 're-run keeps an existing _backlog.md untouched [#init-idempotent] — clobbered'
 fi
+
+# --- bootstrap mode: caped init <name> -----------------------------------------
+
+mkdir -p "$TMP/boot"
+cd "$TMP/boot"
+if bash "$REPO_ROOT/scripts/caped.sh" init myproj >/dev/null 2>&1; then
+  ok 'bootstrap init <name> succeeds [#init-idempotent]'
+else
+  bad 'bootstrap init <name> succeeds [#init-idempotent] — non-zero exit'
+fi
+
+if [ -d myproj/.git ] \
+  && grep -q '^## Requirements$' myproj/README.md \
+  && [ -f myproj/ideas/_backlog.md ] \
+  && [ -f myproj/AGENTS.md ]; then
+  ok 'bootstrapped repo has git, README skeleton, _backlog, AGENTS.md [#init-idempotent]'
+else
+  bad 'bootstrapped repo has git, README skeleton, _backlog, AGENTS.md [#init-idempotent] — piece missing'
+fi
+
+if (cd myproj && "$REPO_ROOT/caped" check >/dev/null 2>&1); then
+  ok 'caped check is green right after bootstrap [#init-idempotent]'
+else
+  bad 'caped check is green right after bootstrap [#init-idempotent] — red'
+fi
+
+if bash "$REPO_ROOT/scripts/caped.sh" init myproj >/dev/null 2>&1; then
+  bad 'bootstrap refuses an existing non-empty directory [#init-idempotent]'
+else
+  ok 'bootstrap refuses an existing non-empty directory [#init-idempotent]'
+fi
+
+cd "$TMP"
 
 # --- Report ------------------------------------------------------------------
 

@@ -2,6 +2,14 @@
 # caped init — one-time wiring of a repository for the caped model.
 # Idempotent: re-running only repairs what is missing and refreshes the report.
 #
+# Modes:
+#   caped init          wire the CURRENT repository (must be a git repo).
+#   caped init <name>   bootstrap: create the directory, git init, seed a
+#                       minimal README (the enforced root cap needs a
+#                       ## Requirements section), then run the standard
+#                       wiring in the new root. An existing non-empty
+#                       directory is refused — bootstrap is a clean start.
+#
 # What it does:
 #   1. Installs the .git/hooks/commit-msg shim delegating to the caped
 #      dispatcher. Linked mode: the shim points at the installed tool
@@ -16,6 +24,21 @@
 #      how many tracked files fall under enforced caps, legacy, or none.
 set -euo pipefail
 
+die() { echo "caped-init: $*" >&2; exit 1; }
+
+# --- 0. bootstrap mode: caped init <name> ------------------------------------
+if [ $# -gt 0 ]; then
+  [ $# -eq 1 ] || die "usage: caped init [name]"
+  if [ -e "$1" ] && [ -n "$(ls -A "$1" 2>/dev/null)" ]; then
+    die "$1 exists and is not empty — run plain 'caped init' inside it instead"
+  fi
+  mkdir -p "$1"
+  cd "$1"
+  [ -d .git ] || git init -q
+  [ -f README.md ] || printf '# %s\n\n## Requirements\n\n-\n' "$(basename "$(pwd)")" > README.md
+  echo "ok: bootstrapped $1 (git repo + README skeleton)"
+fi
+
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
 
@@ -23,8 +46,6 @@ cd "$ROOT"
 TOOL_DIR="$(cd "$(dirname "$0")" && pwd)"
 TOOL_WRAPPER="$(dirname "$TOOL_DIR")/caped"
 [ -x "$TOOL_WRAPPER" ] || TOOL_WRAPPER="$TOOL_DIR/caped.sh"
-
-die() { echo "caped-init: $*" >&2; exit 1; }
 
 [ -d .git ] || die "not a git repository: $ROOT"
 

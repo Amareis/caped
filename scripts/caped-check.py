@@ -75,6 +75,12 @@ def parse_frontmatter_text(text):
 
 def known_entities():
     """Names that ever existed: live files, born/archived trailers, rename aliases."""
+    # A fresh repo (zero commits — e.g. right after `caped init <name>`) has
+    # no history at all; git log fails there, treat it as "no entities yet".
+    if subprocess.run(["git", "rev-parse", "--verify", "HEAD"],
+                      capture_output=True).returncode != 0:
+        live = {f.stem for d in ("ideas", "changes") for f in (ROOT / d).glob("*.md") if (ROOT / d).is_dir()}
+        return live, set(), set(), {}
     log = run(["git", "log", f"--format={RS}%B"])
     born, archived = set(), set()
     for rec in log.split(RS):

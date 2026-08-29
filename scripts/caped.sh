@@ -264,7 +264,11 @@ COMMANDS
                           it only repairs missing pieces and refreshes the report.
                           Among the seeded pieces: the ideas/_backlog.md skeleton
                           (the archive deposit target) — created when missing,
-                          an existing file is never touched.
+                          an existing file is never touched. With a name argument
+                          init BOOTSTRAPS: creates the directory, git init, seeds
+                          a README skeleton, then runs the wiring — zero to a
+                          disciplined repo in one command; an existing non-empty
+                          directory is refused (adopt it with the in-repo mode).
   caped check         — structural validation of ideas/ and changes/ [#check-structure]
                           (frontmatter — incl. folded values, a field's text on
                           the next indented line is valid,
@@ -374,7 +378,7 @@ EOF
 
 case "$cmd" in
   "") rules ;;
-  init) exec "$DIR/caped-init.sh" ;;
+  init) shift; exec "$DIR/caped-init.sh" "$@" ;;
   hook)
     shift
     [ $# -ge 1 ] || { echo "caped: hook <name> [args...]" >&2; exit 2; }
